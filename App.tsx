@@ -573,22 +573,22 @@ const LoginScreen: React.FC<{ onLogin: () => void; lang: Lang }> = ({ onLogin, l
 
 const Header: React.FC<{ user: AppUser; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void; t: Translations; onShowHelp: () => void }> = ({ user, onLogout, lang, setLang, t, onShowHelp }) => {
     return (
-        <header className="bg-gray-800 p-4 flex justify-between items-center print:hidden" style={{ position: 'relative', zIndex: 20 }}>
-            <h1 className="text-xl font-bold text-teal-500">{t.loginTitle as string}</h1>
-            <div className="flex items-center space-x-4">
+        <header className="bg-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 print:hidden" style={{ position: 'relative', zIndex: 20 }}>
+            <h1 className="text-lg sm:text-xl font-bold text-teal-500 text-center sm:text-left">{t.loginTitle as string}</h1>
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
                 <button
                     onClick={onShowHelp}
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-medium"
+                    className="bg-blue-600 hover:bg-blue-700 px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium"
                     title={t.help as string}
                 >
-                    ❓ {t.help as string}
+                    <span className="hidden sm:inline">❓ </span>{t.help as string}
                 </button>
-                <span className="text-gray-400 hidden sm:block">{t.welcome as string}, {user.displayName?.split(' ')[0]}</span>
+                <span className="text-gray-400 hidden md:block text-sm">{t.welcome as string}, {user.displayName?.split(' ')[0]}</span>
                 <div className="flex items-center">
-                    <button onClick={() => setLang('fr')} className={`px-2 py-1 text-sm rounded-l-md ${lang === 'fr' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>FR</button>
-                    <button onClick={() => setLang('en')} className={`px-2 py-1 text-sm rounded-r-md ${lang === 'en' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>EN</button>
+                    <button onClick={() => setLang('fr')} className={`px-2 py-1 text-xs sm:text-sm rounded-l-md ${lang === 'fr' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>FR</button>
+                    <button onClick={() => setLang('en')} className={`px-2 py-1 text-xs sm:text-sm rounded-r-md ${lang === 'en' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>EN</button>
                 </div>
-                <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">{t.logout as string}</button>
+                <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 sm:py-2 px-2 sm:px-4 rounded-lg text-xs sm:text-sm transition-colors">{t.logout as string}</button>
             </div>
         </header>
     );
@@ -647,13 +647,13 @@ const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations, 
 
     return (
         <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold">{t.sessionHistory as string}</h2>
-                <div className="space-x-2 print:hidden">
-                    <button onClick={exportTxt} className="bg-gray-700 hover:bg-gray-600 py-2 px-3 rounded-lg text-sm">{t.exportTxt as string}</button>
-                    <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-2 px-3 rounded-lg text-sm">{t.sendEmail as string}</button>
-                    <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-2 px-3 rounded-lg text-sm">{t.print as string}</button>
-                    <button onClick={handleClearHistory} className="bg-red-700 hover:bg-red-600 py-2 px-3 rounded-lg text-sm">{t.clearHistory as string}</button>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
+                <h2 className="text-xl sm:text-2xl font-semibold">{t.sessionHistory as string}</h2>
+                <div className="flex flex-wrap gap-2 print:hidden">
+                    <button onClick={exportTxt} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.exportTxt as string}</button>
+                    <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.sendEmail as string}</button>
+                    <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.print as string}</button>
+                    <button onClick={handleClearHistory} className="bg-red-700 hover:bg-red-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.clearHistory as string}</button>
                 </div>
             </div>
             <div className="space-y-2">
@@ -887,10 +887,10 @@ export default function App() {
             <div className="font-sans">
                 <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
 
-            <main className="p-4 md:p-8 max-w-4xl mx-auto">
+            <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto">
                 {/* Timer Dashboard */}
-                <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 shadow-xl border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
-                    <div className="grid md:grid-cols-2 gap-6 items-start">
+                <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-4 sm:p-6 shadow-xl border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                         {/* Left: Config */}
                         <div>
                            <label htmlFor="agency-select" className="block text-sm font-medium text-gray-400 mb-2">{t.selectAgency as string}</label>
@@ -936,22 +936,22 @@ export default function App() {
                         </div>
                         {/* Right: Timer and Controls */}
                         <div className="flex flex-col items-center justify-center h-full">
-                            <p className="font-mono text-6xl md:text-7xl text-gray-200 tracking-wider">
+                            <p className="font-mono text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-gray-200 tracking-wider text-center">
                                 {formatTime(elapsedTime)}
                             </p>
-                            {status === 'paused' && <p className="text-yellow-400 font-semibold animate-pulse">{t.sessionPaused as string}</p>}
-                            <div className="flex space-x-4 mt-6">
+                            {status === 'paused' && <p className="text-yellow-400 font-semibold animate-pulse text-sm sm:text-base">{t.sessionPaused as string}</p>}
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-4 sm:mt-6 w-full sm:w-auto">
                                 {status === 'stopped' && (
-                                    <button onClick={handleStart} disabled={!canStart} className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"><PlayIcon /> <span>{t.start as string}</span></button>
+                                    <button onClick={handleStart} disabled={!canStart} className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed w-full sm:w-auto text-sm sm:text-base"><PlayIcon /> <span>{t.start as string}</span></button>
                                 )}
                                 {status === 'running' && (
-                                    <button onClick={pause} className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"><PauseIcon /> <span>{t.pause as string}</span></button>
+                                    <button onClick={pause} className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><PauseIcon /> <span>{t.pause as string}</span></button>
                                 )}
                                 {status === 'paused' && (
-                                    <button onClick={resume} className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"><PlayIcon /> <span>{t.resume as string}</span></button>
+                                    <button onClick={resume} className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><PlayIcon /> <span>{t.resume as string}</span></button>
                                 )}
                                 {(status === 'running' || status === 'paused') && (
-                                    <button onClick={stop} className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"><StopIcon/> <span>{t.stop as string}</span></button>
+                                    <button onClick={stop} className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><StopIcon/> <span>{t.stop as string}</span></button>
                                 )}
                             </div>
                         </div>
@@ -992,10 +992,10 @@ export default function App() {
             
             {/* Modals */}
             {showInactivityModal && (
-                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 rounded-lg p-8 max-w-md w-full text-center shadow-2xl">
-                        <h2 className="text-2xl font-bold text-yellow-400 mb-4">{t.inactivityTitle as string}</h2>
-                        <p className="text-gray-300 mb-6">{t.inactivityText as string}</p>
+                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 rounded-lg p-4 sm:p-8 max-w-md w-full text-center shadow-2xl">
+                        <h2 className="text-xl sm:text-2xl font-bold text-yellow-400 mb-4">{t.inactivityTitle as string}</h2>
+                        <p className="text-gray-300 mb-6 text-sm sm:text-base">{t.inactivityText as string}</p>
                         <button
                             onClick={handleResumeFromModal}
                             className="mt-4 w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
@@ -1015,23 +1015,23 @@ export default function App() {
 
             {/* Welcome Modal */}
             {showWelcome && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 p-6 rounded-lg max-w-lg mx-4">
-                        <h3 className="text-2xl font-bold mb-4 text-teal-400">{t.welcomeTitle as string}</h3>
-                        <p className="text-gray-300 mb-6">{t.welcomeMessage as string}</p>
-                        <div className="flex space-x-4">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg max-w-lg w-full">
+                        <h3 className="text-xl sm:text-2xl font-bold mb-4 text-teal-400">{t.welcomeTitle as string}</h3>
+                        <p className="text-gray-300 mb-6 text-sm sm:text-base">{t.welcomeMessage as string}</p>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                             <button
                                 onClick={() => {
                                     handleWelcomeClose();
                                     setShowHelp(true);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex-1"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex-1 text-sm sm:text-base"
                             >
                                 {t.help as string}
                             </button>
                             <button
                                 onClick={handleWelcomeClose}
-                                className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg flex-1"
+                                className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg flex-1 text-sm sm:text-base"
                             >
                                 {t.gotIt as string}
                             </button>
@@ -1042,15 +1042,15 @@ export default function App() {
 
             {/* Help Modal */}
             {showHelp && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 p-6 rounded-lg max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
-                        <h3 className="text-2xl font-bold mb-4 text-blue-400">{t.helpTitle as string}</h3>
-                        <div className="text-gray-300 mb-6 whitespace-pre-line">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                        <h3 className="text-xl sm:text-2xl font-bold mb-4 text-blue-400">{t.helpTitle as string}</h3>
+                        <div className="text-gray-300 mb-6 whitespace-pre-line text-sm sm:text-base">
                             {t.helpContent as string}
                         </div>
                         <button
                             onClick={() => setShowHelp(false)}
-                            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg w-full"
+                            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg w-full text-sm sm:text-base"
                         >
                             {t.closeHelp as string}
                         </button>
