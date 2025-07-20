@@ -1,15 +1,15 @@
-// Configuration Firebase pour la production
-// Ce fichier contient les clés publiques Firebase qui peuvent être exposées côté client
+// Configuration Firebase sécurisée
+// Utilise les variables d'environnement pour éviter l'exposition des clés dans le code source
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyBM_8bJBpCOzT3PnjzjQvlhDb5vS6AUEJ8",
-  authDomain: "florasynth-a461d.firebaseapp.com",
-  projectId: "florasynth-a461d",
-  storageBucket: "florasynth-a461d.firebasestorage.app",
-  messagingSenderId: "1040083472841",
-  appId: "1:1040083472841:web:2d5429cfefbb9eac7c1818",
-  measurementId: "G-3G3YNB8GKY"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Note: Ces clés sont publiques et sécurisées par les règles Firebase
-// Elles peuvent être exposées côté client sans risque de sécurité
+// Note: Les variables d'environnement sont chargées depuis le fichier .env
+// Assurez-vous que .env est dans votre .gitignore pour éviter l'exposition des clés
