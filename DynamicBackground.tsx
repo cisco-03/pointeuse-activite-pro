@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import AstronomicalLayer from './AstronomicalLayer';
 
@@ -61,9 +61,11 @@ interface DynamicBackgroundProps {
 
 const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
   const backgroundRef = useRef<HTMLDivElement>(null);
+  const landscapeRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const lastUpdateRef = useRef<string>('');
   const animationFrameRef = useRef<number | null>(null);
+  const [landscapeBrightness, setLandscapeBrightness] = useState(1);
 
   // Fonction pour interpoler entre deux couleurs
   const interpolateColor = (color1: string, color2: string, factor: number): string => {
@@ -83,6 +85,29 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
     const b = Math.round(b1 + (b2 - b1) * factor);
     
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
+  // Fonction pour calculer la luminosité du paysage selon l'heure
+  const calculateLandscapeBrightness = (hour: number): number => {
+    // Luminosité maximale pendant la journée (6h-18h)
+    if (hour >= 6 && hour <= 18) {
+      return 1.0; // Pleine luminosité
+    }
+
+    // Transition douce au lever du soleil (5h-7h)
+    if (hour >= 5 && hour < 6) {
+      const progress = (hour - 5);
+      return 0.3 + (0.7 * progress); // De 30% à 100%
+    }
+
+    // Transition douce au coucher du soleil (18h-20h)
+    if (hour > 18 && hour <= 20) {
+      const progress = (hour - 18) / 2;
+      return 1.0 - (0.7 * progress); // De 100% à 30%
+    }
+
+    // Nuit profonde (20h-5h) - image assombrie
+    return 0.3; // 30% de luminosité pour la nuit
   };
 
   // Fonction pour obtenir les couleurs actuelles basées sur l'heure
@@ -112,12 +137,27 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
   const updateBackground = () => {
     if (!backgroundRef.current) return;
 
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSecond = now.getSeconds();
+
+    // Calcul précis de l'heure avec minutes et secondes
+    const preciseHour = currentHour + currentMinute / 60 + currentSecond / 3600;
+
     const colors = getCurrentColors();
     const gradient = `linear-gradient(to top, ${colors.primary} 0%, ${colors.secondary} 50%, ${colors.tertiary} 100%)`;
 
+    // Calculer la nouvelle luminosité du paysage
+    const newBrightness = calculateLandscapeBrightness(preciseHour);
+
     // Éviter les mises à jour inutiles si les couleurs n'ont pas changé
-    if (lastUpdateRef.current === gradient) return;
-    lastUpdateRef.current = gradient;
+    const updateKey = `${gradient}-${newBrightness}`;
+    if (lastUpdateRef.current === updateKey) return;
+    lastUpdateRef.current = updateKey;
+
+    // Mettre à jour l'état de la luminosité
+    setLandscapeBrightness(newBrightness);
 
     // Annuler l'animation précédente pour éviter les conflits
     if (timelineRef.current) {
@@ -133,6 +173,15 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
       force3D: true, // Utiliser l'accélération GPU
       willChange: "background"
     });
+
+    // Animation de la luminosité du paysage
+    if (landscapeRef.current) {
+      timelineRef.current.to(landscapeRef.current, {
+        filter: `brightness(${newBrightness})`,
+        duration: 0.5,
+        ease: "power1.out"
+      }, 0); // Démarrer en même temps que l'animation du fond
+    }
   };
 
   // Fonction optimisée pour les mises à jour en temps réel
@@ -175,6 +224,21 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
       }}
     >
       <AstronomicalLayer />
+
+      {/* Image de paysage avec effet de luminosité dynamique */}
+      <div
+        ref={landscapeRef}
+        className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat pointer-events-none"
+        style={{
+          backgroundImage: 'url(/Background.png)',
+          backgroundPosition: 'bottom center',
+          backgroundSize: 'cover',
+          zIndex: 5, // Devant les étoiles (z-index 1) mais derrière le contenu (z-index 10+)
+          filter: `brightness(${landscapeBrightness})`,
+          transition: 'filter 0.5s ease-out'
+        }}
+      />
+
       {children}
     </div>
   );
