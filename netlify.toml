@@ -14,7 +14,7 @@
   to = "/index.html"
   status = 200
 
-# Headers de sécurité
+# Headers de sécurité et Firebase
 [[headers]]
   for = "/*"
   [headers.values]
@@ -22,15 +22,25 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    
+
     # Permissions Policy pour limiter les fonctionnalités
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+    # Headers pour Firebase Authentication (résoudre les erreurs Cross-Origin-Opener-Policy)
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Embedder-Policy = "unsafe-none"
 
 # Headers spécifiques pour les assets statiques
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers spécifiques pour les fichiers CSS
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Content-Type = "text/css"
 
 # Configuration pour les formulaires Netlify (si nécessaire plus tard)
 [forms]
