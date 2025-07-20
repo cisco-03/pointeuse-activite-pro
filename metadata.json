@@ -1,0 +1,5 @@
+{
+  "name": "Pointeuse d'Activité Pro",
+  "description": "Une application web de pointeuse d'activité pour les travailleurs indépendants et intérimaires, permettant de suivre le temps de travail par agence avec des fonctionnalités avancées de journalisation et de reporting. L'authentification se fait via Google et les données sont stockées de manière sécurisée sur Firebase.",
+  "requestFramePermissions": []
+}
