@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import DynamicBackground from './DynamicBackground';
+import BackgroundInfo from './BackgroundInfo';
 import { auth, db, googleProvider } from './firebase';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
+import {
+  onAuthStateChanged,
+  signInWithPopup,
   signOut,
   User as FirebaseUser
 } from 'firebase/auth';
-import { 
-  doc, 
-  setDoc, 
+import {
+  doc,
+  setDoc,
   getDoc,
   updateDoc,
   arrayUnion,
@@ -18,6 +20,7 @@ import {
   where,
   getDocs,
   orderBy,
+  deleteDoc,
   Timestamp
 } from 'firebase/firestore';
 
@@ -101,7 +104,38 @@ const translations: { [key in Lang]: Translations } = {
     exportTxt: "Exporter en .txt",
     sendEmail: "Envoyer par Email",
     print: "Imprimer",
+    clearHistory: "Vider l'historique",
+    confirmClearHistory: "Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.",
     noHistory: "Aucun historique de session trouvé.",
+    help: "Aide",
+    welcomeTitle: "Bienvenue dans Pointeuse d'Activité Pro !",
+    welcomeMessage: "Cette application vous permet de suivre votre temps de travail par agence. Consultez l'aide pour plus d'informations.",
+    helpTitle: "Guide d'utilisation",
+    helpContent: `
+**Comment utiliser l'application :**
+
+1. **Sélectionnez une agence** dans la liste déroulante
+2. **Ajoutez une nouvelle agence** avec le bouton "+"
+3. **Décrivez votre première tâche** dans le champ de texte
+4. **Cliquez sur "Démarrer"** pour lancer le chronomètre
+5. **Ajoutez des notes** pendant votre session de travail
+6. **Cliquez sur "Arrêter"** pour terminer la session
+
+**Fonctionnalités :**
+- ⏱️ Chronomètre automatique avec pause/reprise
+- 📝 Journal d'activité avec horodatage complet
+- 📊 Historique des sessions par agence
+- 📤 Export en .txt et envoi par email
+- 🗑️ Archivage automatique après 90 jours
+- 🌐 Interface multilingue (FR/EN)
+
+**Conseils :**
+- Décrivez précisément vos tâches pour un suivi optimal
+- Utilisez les notes pour documenter votre progression
+- L'historique est automatiquement sauvegardé
+    `,
+    closeHelp: "Fermer",
+    gotIt: "J'ai compris",
     duration: "Durée",
     date: "Date",
     inactivityTitle: "Êtes-vous toujours là ?",
@@ -133,7 +167,38 @@ const translations: { [key in Lang]: Translations } = {
     exportTxt: "Export as .txt",
     sendEmail: "Send via Email",
     print: "Print",
+    clearHistory: "Clear History",
+    confirmClearHistory: "Are you sure you want to delete all history? This action cannot be undone.",
     noHistory: "No session history found.",
+    help: "Help",
+    welcomeTitle: "Welcome to Activity Time Tracker Pro!",
+    welcomeMessage: "This application helps you track your work time by agency. Check the help section for more information.",
+    helpTitle: "User Guide",
+    helpContent: `
+**How to use the application:**
+
+1. **Select an agency** from the dropdown list
+2. **Add a new agency** with the "+" button
+3. **Describe your first task** in the text field
+4. **Click "Start"** to begin the timer
+5. **Add notes** during your work session
+6. **Click "Stop"** to end the session
+
+**Features:**
+- ⏱️ Automatic timer with pause/resume
+- 📝 Activity log with full timestamps
+- 📊 Session history by agency
+- 📤 Export to .txt and email sending
+- 🗑️ Automatic archiving after 90 days
+- 🌐 Multilingual interface (FR/EN)
+
+**Tips:**
+- Describe your tasks precisely for optimal tracking
+- Use notes to document your progress
+- History is automatically saved
+    `,
+    closeHelp: "Close",
+    gotIt: "Got it",
     duration: "Duration",
     date: "Date",
     inactivityTitle: "Are you still there?",
@@ -159,7 +224,12 @@ const formatTime = (totalSeconds: number): string => {
 const formatTimestamp = (ts: Timestamp | Date, lang: Lang): string => {
   const date = ts instanceof Timestamp ? ts.toDate() : ts;
   return date.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   });
 };
 
@@ -179,8 +249,12 @@ const useAuth = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
+      console.log('🔄 État d\'authentification changé:', firebaseUser ? firebaseUser.email : 'Déconnecté');
+
+      if (firebaseUser && mounted) {
         const appUser: AppUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -188,19 +262,53 @@ const useAuth = () => {
         };
         await checkAndCreateUserProfile(appUser);
         setUser(appUser);
-      } else {
+      } else if (mounted) {
         setUser(null);
       }
-      setIsLoading(false);
+
+      if (mounted) {
+        setIsLoading(false);
+      }
     });
-    return () => unsubscribe();
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const login = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Error during sign-in:", error);
+      console.log('🔐 Tentative de connexion Google avec POPUP...');
+      setIsLoading(true);
+
+      // Configurer le provider pour forcer le popup
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
+      console.log('🪟 Ouverture du popup d\'authentification...');
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('✅ Connexion réussie:', result.user.email);
+      setIsLoading(false);
+
+    } catch (error: any) {
+      console.error("❌ Erreur lors de la connexion:", error);
+      console.error("Code d'erreur:", error.code);
+      console.error("Message:", error.message);
+      setIsLoading(false);
+
+      // Gestion spécifique des erreurs
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log('ℹ️ Popup fermée par l\'utilisateur');
+        // Ne pas afficher d'erreur, c'est normal
+      } else if (error.code === 'auth/popup-blocked') {
+        alert('Popup bloquée par le navigateur. Veuillez autoriser les popups pour ce site et réessayer.');
+      } else if (error.code === 'auth/invalid-api-key') {
+        alert('Clé API invalide. Vérifiez la configuration Firebase.');
+      } else {
+        alert(`Erreur de connexion: ${error.message}`);
+      }
     }
   };
 
@@ -279,10 +387,49 @@ const useFirestore = (userId: string | undefined) => {
         }
     };
 
+    const clearHistory = async () => {
+        if (!userId) return;
+
+        try {
+            console.log('🗑️ Suppression de l\'historique...');
+
+            // Récupérer toutes les sessions de l'utilisateur
+            const sessionsColRef = collection(db, 'sessions');
+            const q = query(sessionsColRef, where("userId", "==", userId));
+            const querySnapshot = await getDocs(q);
+
+            // Supprimer chaque document
+            const deletePromises = querySnapshot.docs.map(doc =>
+                deleteDoc(doc.ref)
+            );
+
+            await Promise.all(deletePromises);
+
+            // Mettre à jour l'état local
+            setHistory([]);
+            console.log(`✅ ${querySnapshot.docs.length} sessions supprimées`);
+
+        } catch (error) {
+            console.error("❌ Erreur lors de la suppression de l'historique:", error);
+        }
+    };
+
+    // FONCTION D'ARCHIVAGE TEMPORAIREMENT SUPPRIMÉE
+    // Nécessite un index Firebase composite pour userId + startTime
+    // const autoArchiveOldSessions = async () => { ... }
+
     const fetchHistory = useCallback(async () => {
         if (!userId) return;
+
+        console.log('📚 Chargement de l\'historique...');
+
+        // D'abord, archiver les anciennes sessions (90+ jours)
+        // TEMPORAIREMENT DÉSACTIVÉ - Nécessite un index Firebase
+        // await autoArchiveOldSessions();
+
         const sessionsColRef = collection(db, 'sessions');
         const q = query(sessionsColRef, where("userId", "==", userId), orderBy("startTime", "desc"));
+
         try {
             const querySnapshot = await getDocs(q);
             const sessions: Session[] = [];
@@ -290,9 +437,20 @@ const useFirestore = (userId: string | undefined) => {
                 sessions.push({ id: doc.id, ...doc.data() } as Session);
             });
             setHistory(sessions);
-        } catch (error) {
-            console.error("Error fetching history:", error);
+            console.log(`✅ ${sessions.length} sessions chargées dans l'historique`);
+        } catch (error: any) {
+            console.error("❌ Error fetching history:", error);
+
+            // Si c'est une erreur d'index manquant, afficher un message informatif
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                console.log('🔗 Lien pour créer l\'index automatiquement détecté dans l\'erreur');
+                console.log('📋 Suivez le lien dans l\'erreur pour créer l\'index Firestore');
+            }
+
+            // En cas d'erreur, garder un historique vide pour ne pas planter l'app
+            setHistory([]);
         }
+
     }, [userId]);
 
 
@@ -306,7 +464,7 @@ const useFirestore = (userId: string | undefined) => {
         }
     }, [userId, fetchAgencies, fetchHistory]);
 
-    return { agencies, addAgency, history, saveSession, fetchHistory };
+    return { agencies, addAgency, history, saveSession, fetchHistory, clearHistory };
 };
 
 
@@ -413,11 +571,18 @@ const LoginScreen: React.FC<{ onLogin: () => void; lang: Lang }> = ({ onLogin, l
     );
 };
 
-const Header: React.FC<{ user: AppUser; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void; t: Translations }> = ({ user, onLogout, lang, setLang, t }) => {
+const Header: React.FC<{ user: AppUser; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void; t: Translations; onShowHelp: () => void }> = ({ user, onLogout, lang, setLang, t, onShowHelp }) => {
     return (
-        <header className="bg-gray-800 p-4 flex justify-between items-center print:hidden">
+        <header className="bg-gray-800 p-4 flex justify-between items-center print:hidden" style={{ position: 'relative', zIndex: 20 }}>
             <h1 className="text-xl font-bold text-teal-500">{t.loginTitle as string}</h1>
             <div className="flex items-center space-x-4">
+                <button
+                    onClick={onShowHelp}
+                    className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-medium"
+                    title={t.help as string}
+                >
+                    ❓ {t.help as string}
+                </button>
                 <span className="text-gray-400 hidden sm:block">{t.welcome as string}, {user.displayName?.split(' ')[0]}</span>
                 <div className="flex items-center">
                     <button onClick={() => setLang('fr')} className={`px-2 py-1 text-sm rounded-l-md ${lang === 'fr' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>FR</button>
@@ -429,7 +594,7 @@ const Header: React.FC<{ user: AppUser; onLogout: () => void; lang: Lang; setLan
     );
 };
 
-const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations }> = ({ history, lang, t }) => {
+const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations, onClearHistory: () => void }> = ({ history, lang, t, onClearHistory }) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     
     const generateTxtContent = () => {
@@ -470,18 +635,25 @@ const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations }
         window.print();
     };
 
+    const handleClearHistory = () => {
+        if (window.confirm(t.confirmClearHistory as string)) {
+            onClearHistory();
+        }
+    };
+
     if (history.length === 0) {
         return <div className="p-4 text-center text-gray-500">{t.noHistory as string}</div>
     }
 
     return (
-        <div className="bg-gray-800 rounded-lg p-6 mt-8">
+        <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-semibold">{t.sessionHistory as string}</h2>
                 <div className="space-x-2 print:hidden">
                     <button onClick={exportTxt} className="bg-gray-700 hover:bg-gray-600 py-2 px-3 rounded-lg text-sm">{t.exportTxt as string}</button>
                     <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-2 px-3 rounded-lg text-sm">{t.sendEmail as string}</button>
                     <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-2 px-3 rounded-lg text-sm">{t.print as string}</button>
+                    <button onClick={handleClearHistory} className="bg-red-700 hover:bg-red-600 py-2 px-3 rounded-lg text-sm">{t.clearHistory as string}</button>
                 </div>
             </div>
             <div className="space-y-2">
@@ -573,11 +745,13 @@ export default function App() {
     const [lang, setLang] = useState<Lang>('fr');
     const t = useMemo(() => translations[lang], [lang]);
     
-    const { agencies, addAgency, history, saveSession } = useFirestore(user?.uid);
+    const { agencies, addAgency, history, saveSession, clearHistory } = useFirestore(user?.uid);
 
     const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
     const [newAgencyName, setNewAgencyName] = useState('');
     const [showAddAgency, setShowAddAgency] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
     
     const [firstTask, setFirstTask] = useState('');
     const [currentNote, setCurrentNote] = useState('');
@@ -614,6 +788,23 @@ export default function App() {
     };
 
     const { elapsedTime, status, start, pause, resume, stop, forcePause } = useTimer(handleStop);
+
+    // Vérifier si c'est la première visite
+    useEffect(() => {
+        if (user) {
+            const hasSeenWelcome = localStorage.getItem(`hasSeenWelcome_${user.uid}`);
+            if (!hasSeenWelcome) {
+                setShowWelcome(true);
+            }
+        }
+    }, [user]);
+
+    const handleWelcomeClose = () => {
+        if (user) {
+            localStorage.setItem(`hasSeenWelcome_${user.uid}`, 'true');
+        }
+        setShowWelcome(false);
+    };
     
     const setupRandomCheck = useCallback(() => {
        if (randomCheckTimerRef.current) clearTimeout(randomCheckTimerRef.current);
@@ -692,12 +883,13 @@ export default function App() {
     const canStart = firstTask.trim() !== '' && selectedAgencyId !== '';
 
     return (
-        <div className="min-h-screen bg-gray-900 font-sans">
-            <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} />
+        <DynamicBackground>
+            <div className="font-sans">
+                <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
 
             <main className="p-4 md:p-8 max-w-4xl mx-auto">
                 {/* Timer Dashboard */}
-                <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
+                <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 shadow-xl border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
                     <div className="grid md:grid-cols-2 gap-6 items-start">
                         {/* Left: Config */}
                         <div>
@@ -794,7 +986,7 @@ export default function App() {
 
                 {/* Session History */}
                 <div className="printable-area">
-                    <HistoryPanel history={history} lang={lang} t={t} />
+                    <HistoryPanel history={history} lang={lang} t={t} onClearHistory={clearHistory} />
                 </div>
             </main>
             
@@ -814,11 +1006,56 @@ export default function App() {
                 </div>
             )}
             {showRandomCheckModal && (
-                <RandomCheckModal 
-                    t={t} 
-                    onConfirm={handleRandomCheckConfirm} 
-                    onDismiss={handleRandomCheckDismiss} 
+                <RandomCheckModal
+                    t={t}
+                    onConfirm={handleRandomCheckConfirm}
+                    onDismiss={handleRandomCheckDismiss}
                 />
+            )}
+
+            {/* Welcome Modal */}
+            {showWelcome && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-lg max-w-lg mx-4">
+                        <h3 className="text-2xl font-bold mb-4 text-teal-400">{t.welcomeTitle as string}</h3>
+                        <p className="text-gray-300 mb-6">{t.welcomeMessage as string}</p>
+                        <div className="flex space-x-4">
+                            <button
+                                onClick={() => {
+                                    handleWelcomeClose();
+                                    setShowHelp(true);
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex-1"
+                            >
+                                {t.help as string}
+                            </button>
+                            <button
+                                onClick={handleWelcomeClose}
+                                className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg flex-1"
+                            >
+                                {t.gotIt as string}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Help Modal */}
+            {showHelp && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-lg max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+                        <h3 className="text-2xl font-bold mb-4 text-blue-400">{t.helpTitle as string}</h3>
+                        <div className="text-gray-300 mb-6 whitespace-pre-line">
+                            {t.helpContent as string}
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg w-full"
+                        >
+                            {t.closeHelp as string}
+                        </button>
+                    </div>
+                </div>
             )}
             
             <style>{`
@@ -839,6 +1076,8 @@ export default function App() {
                   }
                 }
             `}</style>
-        </div>
+            </div>
+            <BackgroundInfo />
+        </DynamicBackground>
     );
 }
