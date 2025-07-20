@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import DynamicBackground from './DynamicBackground';
+import LoginBackground from './LoginBackground';
 import BackgroundInfo from './BackgroundInfo';
 import { auth, db, googleProvider } from './firebase';
 import {
@@ -560,17 +561,60 @@ const useInactivityDetector = (onInactive: () => void, timeout = 300000) => { //
 const LoginScreen: React.FC<{ onLogin: () => void; lang: Lang }> = ({ onLogin, lang }) => {
     const t = translations[lang];
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-200 mb-4">{t.loginTitle as string}</h1>
-            <p className="text-gray-400 mb-8 max-w-md">La solution moderne pour le suivi de temps des freelances et intérimaires.</p>
-            <button
-                onClick={onLogin}
-                className="flex items-center justify-center bg-white text-gray-700 font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-100 transition-all duration-300 transform hover:scale-105"
-            >
-                <GoogleIcon />
-                {t.loginButton as string}
-            </button>
-        </div>
+        <LoginBackground>
+            <div className="flex flex-col items-center justify-center min-h-screen text-center px-4 sm:px-6 lg:px-8">
+                {/* Conteneur principal avec fond semi-transparent */}
+                <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-6 sm:p-8 lg:p-12 max-w-md w-full shadow-2xl border border-white/10">
+                    {/* Logo/Titre */}
+                    <div className="mb-8">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+                            {t.loginTitle as string}
+                        </h1>
+                        <p className="text-gray-200 text-sm sm:text-base lg:text-lg leading-relaxed">
+                            La solution moderne pour le suivi de temps des freelances et intérimaires.
+                        </p>
+                    </div>
+
+                    {/* Bouton de connexion */}
+                    <button
+                        onClick={onLogin}
+                        className="w-full flex items-center justify-center bg-white text-gray-800 font-semibold py-3 sm:py-4 px-6 rounded-xl shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+                    >
+                        <GoogleIcon />
+                        <span className="text-sm sm:text-base">{t.loginButton as string}</span>
+                    </button>
+
+                    {/* Indicateur de fonctionnalités */}
+                    <div className="mt-8 pt-6 border-t border-white/20">
+                        <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300">
+                            <div className="text-center">
+                                <div className="text-lg mb-1">⏱️</div>
+                                <div>Chronomètre</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg mb-1">📊</div>
+                                <div>Historique</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg mb-1">📤</div>
+                                <div>Export</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg mb-1">🌐</div>
+                                <div>Multi-langue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer discret */}
+                <div className="mt-8 text-center">
+                    <p className="text-white/60 text-xs sm:text-sm">
+                        Développé avec ❤️ pour les professionnels
+                    </p>
+                </div>
+            </div>
+        </LoginBackground>
     );
 };
 
