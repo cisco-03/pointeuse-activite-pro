@@ -296,6 +296,7 @@ const useAuth = () => {
       console.error("❌ Erreur lors de la connexion:", error);
       console.error("Code d'erreur:", error.code);
       console.error("Message:", error.message);
+      console.error("Détails complets:", JSON.stringify(error, null, 2));
       setIsLoading(false);
 
       // Gestion spécifique des erreurs
@@ -306,8 +307,10 @@ const useAuth = () => {
         alert('Popup bloquée par le navigateur. Veuillez autoriser les popups pour ce site et réessayer.');
       } else if (error.code === 'auth/invalid-api-key') {
         alert('Clé API invalide. Vérifiez la configuration Firebase.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        alert(`Domaine non autorisé: ${window.location.hostname}. Ajoutez ce domaine dans Firebase Console → Authentication → Settings → Authorized domains`);
       } else {
-        alert(`Erreur de connexion: ${error.message}`);
+        alert(`Erreur de connexion: ${error.message}\nCode: ${error.code}\nDomaine actuel: ${window.location.hostname}`);
       }
     }
   };

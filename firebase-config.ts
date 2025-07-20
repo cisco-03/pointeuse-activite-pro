@@ -27,15 +27,15 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Debug : Afficher la configuration (en mode développement uniquement)
-if (import.meta.env.DEV) {
-  console.log('🔧 Configuration Firebase chargée:', {
-    apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'MANQUANTE',
-    authDomain: firebaseConfig.authDomain,
-    projectId: firebaseConfig.projectId,
-    hasAllKeys: Object.values(firebaseConfig).every(value => value !== undefined)
-  });
-}
+// Debug : Afficher la configuration (toujours en production pour diagnostic)
+console.log('🔧 Configuration Firebase chargée:', {
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'MANQUANTE',
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  currentDomain: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
+  hasAllKeys: Object.values(firebaseConfig).every(value => value !== undefined),
+  environment: import.meta.env.MODE
+});
 
 // Note: Les variables d'environnement sont chargées depuis le fichier .env
 // Assurez-vous que .env est dans votre .gitignore pour éviter l'exposition des clés
