@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import AstronomicalLayer from './AstronomicalLayer';
+import DiurnalLayer from './DiurnalLayer';
 
 // Types pour les couleurs du cycle jour/nuit
 interface TimeColor {
@@ -63,6 +64,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
   const backgroundRef = useRef<HTMLDivElement>(null);
   const landscapeRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const zoomTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const lastUpdateRef = useRef<string>('');
   const animationFrameRef = useRef<number | null>(null);
   const [landscapeBrightness, setLandscapeBrightness] = useState(1);
@@ -72,13 +74,13 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
     const hex1 = color1.replace('#', '');
     const hex2 = color2.replace('#', '');
     
-    const r1 = parseInt(hex1.substr(0, 2), 16);
-    const g1 = parseInt(hex1.substr(2, 2), 16);
-    const b1 = parseInt(hex1.substr(4, 2), 16);
-    
-    const r2 = parseInt(hex2.substr(0, 2), 16);
-    const g2 = parseInt(hex2.substr(2, 2), 16);
-    const b2 = parseInt(hex2.substr(4, 2), 16);
+    const r1 = parseInt(hex1.substring(0, 2), 16);
+    const g1 = parseInt(hex1.substring(2, 4), 16);
+    const b1 = parseInt(hex1.substring(4, 6), 16);
+
+    const r2 = parseInt(hex2.substring(0, 2), 16);
+    const g2 = parseInt(hex2.substring(2, 4), 16);
+    const b2 = parseInt(hex2.substring(4, 6), 16);
     
     const r = Math.round(r1 + (r2 - r1) * factor);
     const g = Math.round(g1 + (g2 - g1) * factor);
@@ -146,10 +148,15 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
     const preciseHour = currentHour + currentMinute / 60 + currentSecond / 3600;
 
     const colors = getCurrentColors();
+    // Dégradé repositionné plus haut pour être bien visible au-dessus de l'image de paysage
+    // L'image occupe ~70% de l'écran, donc on concentre le dégradé dans les 30% supérieurs
     const gradient = `linear-gradient(to top, ${colors.primary} 0%, ${colors.secondary} 50%, ${colors.tertiary} 100%)`;
 
     // Calculer la nouvelle luminosité du paysage
     const newBrightness = calculateLandscapeBrightness(preciseHour);
+
+    // 🔍 DEBUG: Log pour comprendre le problème du background
+    console.log(`🎨 BACKGROUND: ${preciseHour.toFixed(2)}h | Luminosité: ${newBrightness} | Couleurs: ${colors.primary}, ${colors.secondary}, ${colors.tertiary}`);
 
     // Éviter les mises à jour inutiles si les couleurs n'ont pas changé
     const updateKey = `${gradient}-${newBrightness}`;
@@ -164,6 +171,13 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
       timelineRef.current.kill();
     }
 
+    // 🔍 DEBUG: Forcer l'application directe du CSS avant GSAP
+    if (backgroundRef.current) {
+      console.log(`🎨 AVANT GSAP: background actuel = ${backgroundRef.current.style.background}`);
+      backgroundRef.current.style.background = gradient;
+      console.log(`🎨 APRÈS CSS: background forcé = ${backgroundRef.current.style.background}`);
+    }
+
     // Animation fluide avec GSAP optimisée
     timelineRef.current = gsap.timeline();
     timelineRef.current.to(backgroundRef.current, {
@@ -171,7 +185,10 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
       duration: 0.3,
       ease: "power1.out",
       force3D: true, // Utiliser l'accélération GPU
-      willChange: "background"
+      willChange: "background",
+      onComplete: () => {
+        console.log(`🎨 GSAP TERMINÉ: background final = ${backgroundRef.current?.style.background}`);
+      }
     });
 
     // Animation de la luminosité du paysage
@@ -197,9 +214,64 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
     });
   };
 
+  // Créer l'animation de zoom profond sur le paysage avec retour à la position initiale
+  const createLandscapeZoomAnimation = () => {
+    if (!landscapeRef.current) return;
+
+    // Nettoyer l'animation précédente
+    if (zoomTimelineRef.current) {
+      zoomTimelineRef.current.kill();
+    }
+
+    // Animation de zoom plus profond et immersif
+    zoomTimelineRef.current = gsap.timeline({
+      repeat: -1,
+      yoyo: false,
+      force3D: true,
+      willChange: "transform"
+    });
+
+    // Phase 1 : Zoom in progressif et plus profond (de 100% à 115% en 45 secondes)
+    // Zoom plus profond pour une expérience plus immersive
+    zoomTimelineRef.current.to(landscapeRef.current, {
+      scale: 1.15, // Zoom plus profond (15% au lieu de 5%)
+      duration: 45, // Plus long pour un effet plus contemplatif
+      ease: "power2.inOut" // Courbe plus douce pour un effet naturel
+    });
+
+    // Phase 2 : Maintien du zoom maximum (pause de 5 secondes)
+    // Permet d'apprécier la profondeur avant le retour
+    zoomTimelineRef.current.to(landscapeRef.current, {
+      scale: 1.15,
+      duration: 5,
+      ease: "none"
+    });
+
+    // Phase 3 : Retour progressif à l'état initial (de 115% à 100% en 35 secondes)
+    // Retour plus rapide que l'aller pour créer un rythme naturel
+    zoomTimelineRef.current.to(landscapeRef.current, {
+      scale: 1.0,
+      duration: 35,
+      ease: "power2.out" // Décélération douce pour un retour naturel
+    });
+
+    // Phase 4 : Pause à l'état initial (10 secondes)
+    // Permet de bien percevoir le retour à la position de départ
+    zoomTimelineRef.current.to(landscapeRef.current, {
+      scale: 1.0,
+      duration: 10,
+      ease: "none"
+    });
+
+    console.log('🔍 Animation de zoom profond du paysage initialisée (cycle de 95 secondes - zoom 15%)');
+  };
+
   useEffect(() => {
     // Mise à jour initiale
     updateBackground();
+
+    // Démarrer l'animation de zoom subtil
+    createLandscapeZoomAnimation();
 
     // Démarrer le cycle de mise à jour optimisé
     scheduleUpdate();
@@ -212,20 +284,24 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
       if (timelineRef.current) {
         timelineRef.current.kill();
       }
+      if (zoomTimelineRef.current) {
+        zoomTimelineRef.current.kill();
+      }
     };
   }, []);
 
   return (
     <div
       ref={backgroundRef}
-      className="min-h-screen transition-all duration-500 ease-out relative"
+      className="min-h-screen transition-all duration-500 ease-out relative overflow-hidden"
       style={{
-        background: 'linear-gradient(to top, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)'
+        background: 'linear-gradient(to top, #1a1a2e 0%, #16213e 30%, #0f0f23 60%)'
       }}
     >
       <AstronomicalLayer />
+      <DiurnalLayer />
 
-      {/* Image de paysage avec effet de luminosité dynamique */}
+      {/* Image de paysage avec effet de luminosité dynamique et zoom subtil */}
       <div
         ref={landscapeRef}
         className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat pointer-events-none"
@@ -235,7 +311,9 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children }) => {
           backgroundSize: 'cover',
           zIndex: 5, // Devant les étoiles (z-index 1) mais derrière le contenu (z-index 10+)
           filter: `brightness(${landscapeBrightness})`,
-          transition: 'filter 0.5s ease-out'
+          transition: 'filter 0.5s ease-out',
+          transformOrigin: 'center center', // Point d'origine pour le zoom
+          willChange: 'transform, filter' // Optimisation GPU
         }}
       />
 
