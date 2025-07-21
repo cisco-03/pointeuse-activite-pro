@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import * as SunCalc from 'suncalc';
+import { useTime } from './TimeContext';
 
 // Interface pour une étoile
 interface Star {
@@ -18,13 +19,14 @@ interface AstronomicalLayerProps {
 }
 
 const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
+  const { getCurrentTime } = useTime();
   const containerRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<Star[]>([]);
   const moonRef = useRef<HTMLDivElement>(null);
   const animationsRef = useRef<gsap.core.Timeline[]>([]);
 
   // État pour la visibilité des étoiles et de la lune
-  const [starsOpacity, setStarsOpacity] = useState(0);
+  const [visibleStarsCount, setVisibleStarsCount] = useState(0);
   const [moonOpacity, setMoonOpacity] = useState(0);
   const [moonPhase, setMoonPhase] = useState(0);
 
@@ -80,13 +82,14 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
 
   // Calculer la phase de lune actuelle
   const calculateMoonPhase = () => {
-    const now = new Date();
+    const now = getCurrentTime(); // Utiliser le temps du contexte (réel ou simulé)
     const moonIllumination = SunCalc.getMoonIllumination(now);
     return moonIllumination.fraction; // 0 = nouvelle lune, 1 = pleine lune
   };
 
-  // Calculer l'opacité des étoiles selon les données astronomiques réelles
-  const calculateStarsOpacity = (currentTime: Date): number => {
+  // Calculer le nombre d'étoiles visibles selon les données astronomiques réelles
+  const calculateVisibleStarsCount = (currentTime: Date): number => {
+    const totalStars = 400; // Nombre total d'étoiles générées
     // Obtenir les données solaires pour aujourd'hui avec la position de l'utilisateur
     const sunTimes = SunCalc.getTimes(currentTime, userLocation.lat, userLocation.lon);
 
@@ -110,54 +113,52 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
       sunsetTime: sunTimes.sunset.toLocaleTimeString()
     });
 
-    // CORRECTION TEMPORAIRE: Forcer les étoiles à 0 entre 6h et 19h (heure d'hiver approximative)
-    if (currentHour >= 6 && currentHour <= 19) {
-      console.log(`☀️ JOUR FORCÉ: ${currentHour.toFixed(2)}h entre 6h et 19h → Étoiles: 0 (RETOUR IMMÉDIAT)`);
-      return 0;
-    }
-
     // Période de jour complet : pas d'étoiles visibles (calcul SunCalc)
     if (currentHour >= sunrise && currentHour <= sunset) {
       console.log(`☀️ JOUR SUNCALC: ${currentHour.toFixed(2)}h entre ${sunrise.toFixed(2)}h et ${sunset.toFixed(2)}h → Étoiles: 0`);
       return 0;
     }
 
-    // Transition progressive après le coucher du soleil
+    // CRÉPUSCULE DU SOIR - Apparition progressive des premières étoiles
     if (currentHour > sunset && currentHour <= nauticalDusk) {
       const progress = (currentHour - sunset) / (nauticalDusk - sunset);
-      const opacity = progress * 0.4;
-      console.log(`🌅 CRÉPUSCULE: ${currentHour.toFixed(2)}h après coucher ${sunset.toFixed(2)}h → Étoiles: ${opacity.toFixed(2)}`);
-      return opacity;
+      // De 0 à 150 étoiles (les plus brillantes d'abord)
+      const visibleCount = Math.floor(progress * 150);
+      console.log(`🌅 CRÉPUSCULE SOIR: ${currentHour.toFixed(2)}h après coucher ${sunset.toFixed(2)}h → Étoiles: ${visibleCount}/${totalStars}`);
+      return visibleCount;
     }
 
-    // Transition vers la nuit complète (crépuscule nautique → nuit)
-    if (currentHour > nauticalDusk && currentHour <= nauticalDusk + 0.5) {
-      const progress = (currentHour - nauticalDusk) / 0.5;
-      const opacity = 0.4 + (progress * 0.6);
-      console.log(`🌌 DÉBUT NUIT: ${currentHour.toFixed(2)}h → Étoiles: ${opacity.toFixed(2)}`);
-      return opacity;
+    // DÉBUT DE NUIT - Plus d'étoiles apparaissent
+    if (currentHour > nauticalDusk && currentHour <= nauticalDusk + 0.75) {
+      const progress = (currentHour - nauticalDusk) / 0.75;
+      // De 150 à 300 étoiles
+      const visibleCount = Math.floor(150 + (progress * 150));
+      console.log(`🌌 DÉBUT NUIT: ${currentHour.toFixed(2)}h → Étoiles: ${visibleCount}/${totalStars}`);
+      return visibleCount;
     }
 
-    // Nuit complète : toutes les étoiles visibles
-    if (currentHour > nauticalDusk + 0.5 && currentHour < nauticalDawn - 0.5) {
-      console.log(`🌙 NUIT COMPLÈTE: ${currentHour.toFixed(2)}h → Étoiles: 1.0`);
-      return 1.0;
+    // NUIT COMPLÈTE - Toutes les étoiles visibles
+    if (currentHour > nauticalDusk + 0.75 && currentHour < nauticalDawn - 0.75) {
+      console.log(`🌙 NUIT COMPLÈTE: ${currentHour.toFixed(2)}h → Étoiles: ${totalStars}/${totalStars}`);
+      return totalStars;
     }
 
-    // Transition avant l'aube (nuit → crépuscule nautique)
-    if (currentHour >= nauticalDawn - 0.5 && currentHour < nauticalDawn) {
-      const progress = (currentHour - (nauticalDawn - 0.5)) / 0.5;
-      const opacity = 1.0 - (progress * 0.6);
-      console.log(`🌄 FIN NUIT: ${currentHour.toFixed(2)}h → Étoiles: ${opacity.toFixed(2)}`);
-      return opacity;
+    // FIN DE NUIT - Les étoiles commencent à disparaître
+    if (currentHour >= nauticalDawn - 0.75 && currentHour < nauticalDawn) {
+      const progress = (currentHour - (nauticalDawn - 0.75)) / 0.75;
+      // De 400 à 150 étoiles
+      const visibleCount = Math.floor(totalStars - (progress * 250));
+      console.log(`🌄 FIN NUIT: ${currentHour.toFixed(2)}h → Étoiles: ${visibleCount}/${totalStars}`);
+      return visibleCount;
     }
 
-    // Transition progressive avant le lever du soleil
+    // AUBE - Disparition progressive des étoiles
     if (currentHour >= nauticalDawn && currentHour < sunrise) {
       const progress = (currentHour - nauticalDawn) / (sunrise - nauticalDawn);
-      const opacity = 0.4 * (1 - progress);
-      console.log(`🌇 AUBE: ${currentHour.toFixed(2)}h avant lever ${sunrise.toFixed(2)}h → Étoiles: ${opacity.toFixed(2)}`);
-      return opacity;
+      // De 150 à 0 étoiles
+      const visibleCount = Math.floor(150 * (1 - progress));
+      console.log(`� AUBE: ${currentHour.toFixed(2)}h avant lever ${sunrise.toFixed(2)}h → Étoiles: ${visibleCount}/${totalStars}`);
+      return visibleCount;
     }
 
     // Cas par défaut (ne devrait pas arriver)
@@ -240,7 +241,7 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
       return;
     }
 
-    const now = new Date();
+    const now = getCurrentTime(); // Utiliser le temps du contexte (réel ou simulé)
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentSecond = now.getSeconds();
@@ -248,8 +249,8 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
     // Calcul précis de l'heure avec minutes et secondes pour l'affichage
     const preciseHour = currentHour + currentMinute / 60 + currentSecond / 3600;
 
-    // Calculer les opacités avec les données astronomiques réelles
-    const newStarsOpacity = calculateStarsOpacity(now);
+    // Calculer le nombre d'étoiles visibles et les autres données astronomiques
+    const newVisibleStarsCount = calculateVisibleStarsCount(now);
     const newMoonOpacity = calculateMoonOpacity(now);
     const newMoonPhase = calculateMoonPhase();
 
@@ -258,10 +259,10 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
     const sunrise = sunTimes.sunrise.getHours() + sunTimes.sunrise.getMinutes() / 60;
     const sunset = sunTimes.sunset.getHours() + sunTimes.sunset.getMinutes() / 60;
 
-    console.log(`🕐${preciseHour.toFixed(2)}h | 🌅${sunrise.toFixed(2)}h | 🌇${sunset.toFixed(2)}h | ⭐${newStarsOpacity.toFixed(2)} | 🌙${newMoonOpacity.toFixed(2)}`);
+    console.log(`🕐${preciseHour.toFixed(2)}h | 🌅${sunrise.toFixed(2)}h | 🌇${sunset.toFixed(2)}h | ⭐${newVisibleStarsCount}/400 | 🌙${newMoonOpacity.toFixed(2)}`);
 
     // Mettre à jour les états
-    setStarsOpacity(newStarsOpacity);
+    setVisibleStarsCount(newVisibleStarsCount);
     setMoonOpacity(newMoonOpacity);
     setMoonPhase(newMoonPhase);
   };
@@ -336,48 +337,48 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
     };
   }, []);
 
-  // Animer l'opacité des étoiles avec optimisations
+  // Gérer la visibilité des étoiles selon le nombre calculé
   useEffect(() => {
     if (!containerRef.current) return;
 
     const starElements = containerRef.current.querySelectorAll('[data-star]');
-    console.log(`🌟 Étoiles trouvées: ${starElements.length}, Opacité cible: ${starsOpacity}`);
+    console.log(`🌟 Étoiles trouvées: ${starElements.length}, Nombre visible: ${visibleStarsCount}/400`);
 
-    // 🔑 CLEF: Gérer les animations de scintillement selon l'opacité
-    if (starsOpacity === 0) {
-      // JOUR: Arrêter toutes les animations et forcer opacité à 0
-      console.log('☀️ JOUR: Arrêt des animations de scintillement');
-      animationsRef.current.forEach(animation => animation.pause());
+    starElements.forEach((star: Element, index) => {
+      const htmlStar = star as HTMLElement;
 
-      starElements.forEach((star: Element, index) => {
-        const htmlStar = star as HTMLElement;
-        // Tuer toute animation GSAP en cours sur cet élément
+      if (index < visibleStarsCount) {
+        // Étoile visible : activer avec opacité complète et scintillement
+        gsap.set(htmlStar, { opacity: 1 });
+        htmlStar.style.opacity = '1';
+        htmlStar.style.display = 'block';
+
+        // Réactiver l'animation de scintillement si elle existe
+        if (index < animationsRef.current.length && animationsRef.current[index]) {
+          animationsRef.current[index].resume();
+        }
+
+        if (index < 5) {
+          console.log(`⭐ Étoile ${index} VISIBLE: activée avec scintillement`);
+        }
+      } else {
+        // Étoile invisible : masquer complètement
         gsap.killTweensOf(htmlStar);
-        // Forcer l'opacité à 0 immédiatement
         gsap.set(htmlStar, { opacity: 0 });
         htmlStar.style.opacity = '0';
+        htmlStar.style.display = 'none';
 
-        if (index < 3) {
-          console.log(`⭐ Étoile ${index} JOUR: animations tuées, opacité forcée à 0`);
+        // Arrêter l'animation de scintillement si elle existe
+        if (index < animationsRef.current.length && animationsRef.current[index]) {
+          animationsRef.current[index].pause();
         }
-      });
-    } else {
-      // NUIT: Réactiver les animations et définir l'opacité de base
-      console.log('🌙 NUIT: Réactivation des animations de scintillement');
-      animationsRef.current.forEach(animation => animation.resume());
 
-      starElements.forEach((star: Element, index) => {
-        const htmlStar = star as HTMLElement;
-        // Définir l'opacité de base (les animations vont prendre le relais)
-        gsap.set(htmlStar, { opacity: starsOpacity });
-        htmlStar.style.opacity = starsOpacity.toString();
-
-        if (index < 3) {
-          console.log(`⭐ Étoile ${index} NUIT: animations réactivées, opacité de base = ${starsOpacity}`);
+        if (index < 5) {
+          console.log(`⭐ Étoile ${index} MASQUÉE: désactivée`);
         }
-      });
-    }
-  }, [starsOpacity, locationReady]);
+      }
+    });
+  }, [visibleStarsCount, locationReady]);
 
   // Animer la lune
   useEffect(() => {
@@ -390,11 +391,13 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
     });
   }, [moonOpacity]);
 
+
+
   // Calculer l'apparence de la lune selon sa phase
   const getMoonStyle = () => {
     const size = 40;
     const shadowOffset = (0.5 - moonPhase) * size;
-    
+
     return {
       width: `${size}px`,
       height: `${size}px`,

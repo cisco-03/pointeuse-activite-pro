@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import DynamicBackground from './DynamicBackground';
 import LoginBackground from './LoginBackground';
 import BackgroundInfo from './BackgroundInfo';
+
+
+import { TimeProvider } from './TimeContext';
 import { auth, db, googleProvider } from './firebase';
 import {
   onAuthStateChanged,
@@ -635,6 +638,7 @@ const Header: React.FC<{ user: AppUser; onLogout: () => void; lang: Lang; setLan
                     <button onClick={() => setLang('fr')} className={`px-2 py-1 text-xs sm:text-sm rounded-l-md ${lang === 'fr' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>FR</button>
                     <button onClick={() => setLang('en')} className={`px-2 py-1 text-xs sm:text-sm rounded-r-md ${lang === 'en' ? 'bg-teal-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>EN</button>
                 </div>
+
                 <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 sm:py-2 px-2 sm:px-4 rounded-lg text-xs sm:text-sm transition-colors">{t.logout as string}</button>
             </div>
         </header>
@@ -930,9 +934,10 @@ export default function App() {
     const canStart = firstTask.trim() !== '' && selectedAgencyId !== '';
 
     return (
-        <DynamicBackground>
-            <div className="font-sans">
-                <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
+        <TimeProvider>
+            <DynamicBackground>
+                <div className="font-sans">
+                    <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
 
             <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto">
                 {/* Timer Dashboard */}
@@ -1125,6 +1130,8 @@ export default function App() {
             `}</style>
             </div>
             <BackgroundInfo />
+
         </DynamicBackground>
+    </TimeProvider>
     );
 }
