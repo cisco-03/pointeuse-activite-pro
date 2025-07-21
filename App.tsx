@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import DynamicBackground from './DynamicBackground';
 import LoginBackground from './LoginBackground';
 import BackgroundInfo from './BackgroundInfo';
-
+import LocationTestButton from './LocationTestButton';
 
 import { TimeProvider } from './TimeContext';
+import { LocationProvider } from './LocationContext';
 import { auth, db, googleProvider } from './firebase';
 import {
   onAuthStateChanged,
@@ -934,10 +935,12 @@ export default function App() {
     const canStart = firstTask.trim() !== '' && selectedAgencyId !== '';
 
     return (
-        <TimeProvider>
-            <DynamicBackground>
-                <div className="font-sans">
-                    <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
+        <LocationProvider>
+            <TimeProvider>
+                <DynamicBackground>
+                    <div className="font-sans">
+
+                        <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
 
             <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto">
                 {/* Timer Dashboard */}
@@ -1128,10 +1131,11 @@ export default function App() {
                   }
                 }
             `}</style>
-            </div>
-            <BackgroundInfo />
-
-        </DynamicBackground>
-    </TimeProvider>
+                    <BackgroundInfo />
+                    <LocationTestButton />
+                </div>
+            </DynamicBackground>
+        </TimeProvider>
+        </LocationProvider>
     );
 }

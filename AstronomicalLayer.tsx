@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import * as SunCalc from 'suncalc';
 import { useTime } from './TimeContext';
+import { useLocation } from './LocationContext';
 
 // Interface pour une étoile
 interface Star {
@@ -20,6 +21,7 @@ interface AstronomicalLayerProps {
 
 const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
   const { getCurrentTime } = useTime();
+  const { userLocation, locationReady } = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<Star[]>([]);
   const moonRef = useRef<HTMLDivElement>(null);
@@ -30,36 +32,7 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
   const [moonOpacity, setMoonOpacity] = useState(0);
   const [moonPhase, setMoonPhase] = useState(0);
 
-  // État pour la géolocalisation
-  const [userLocation, setUserLocation] = useState<{lat: number, lon: number}>({
-    lat: 48.8566, // Paris par défaut
-    lon: 2.3522
-  });
 
-  // État pour savoir si la géolocalisation est prête
-  const [locationReady, setLocationReady] = useState(false);
-
-  // Obtenir la géolocalisation de l'utilisateur
-  const getUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lon: longitude });
-          setLocationReady(true); // 🔑 CLEF: Marquer la géolocalisation comme prête
-          console.log(`📍 Position obtenue: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} - Calculs astronomiques activés !`);
-        },
-        (error) => {
-          console.warn('❌ Géolocalisation refusée, utilisation de Paris par défaut:', error.message);
-          setLocationReady(true); // Même en cas d'erreur, on active avec Paris par défaut
-        },
-        { timeout: 10000, enableHighAccuracy: false }
-      );
-    } else {
-      console.warn('❌ Géolocalisation non supportée par ce navigateur');
-      setLocationReady(true); // Activer avec Paris par défaut
-    }
-  };
 
   // Générer les étoiles une seule fois
   const generateStars = (): Star[] => {
@@ -267,16 +240,7 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
     setMoonPhase(newMoonPhase);
   };
 
-  // Obtenir la géolocalisation au démarrage (désactivé à cause des restrictions navigateur)
-  // useEffect(() => {
-  //   getUserLocation();
-  // }, []);
 
-  // Démarrer avec Paris par défaut et marquer comme prêt
-  useEffect(() => {
-    console.log('🏁 Démarrage avec Paris par défaut (géolocalisation manuelle)');
-    setLocationReady(true);
-  }, []);
 
   // 🔑 CLEF: Forcer une mise à jour dès que la géolocalisation est prête
   useEffect(() => {
@@ -354,8 +318,9 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
         htmlStar.style.display = 'block';
 
         // Réactiver l'animation de scintillement si elle existe
-        if (index < animationsRef.current.length && animationsRef.current[index]) {
-          animationsRef.current[index].resume();
+        const animation = animationsRef.current[index];
+        if (animation && !animation.isActive()) {
+          animation.resume();
         }
 
         if (index < 5) {
@@ -369,8 +334,9 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
         htmlStar.style.display = 'none';
 
         // Arrêter l'animation de scintillement si elle existe
-        if (index < animationsRef.current.length && animationsRef.current[index]) {
-          animationsRef.current[index].pause();
+        const animation = animationsRef.current[index];
+        if (animation && animation.isActive()) {
+          animation.pause();
         }
 
         if (index < 5) {
@@ -413,15 +379,7 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = () => {
       className="absolute inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0 }}
     >
-      {/* Bouton de géolocalisation (seulement si pas encore obtenue) */}
-      {!locationReady && (
-        <button
-          onClick={getUserLocation}
-          className="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg pointer-events-auto z-10 text-sm"
-        >
-          📍 Activer géolocalisation
-        </button>
-      )}
+      {/* Le bouton de géolocalisation est maintenant dans LocationTester */}
 
       {/* Lune */}
       <div
