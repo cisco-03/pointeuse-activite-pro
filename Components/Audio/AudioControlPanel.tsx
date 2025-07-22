@@ -51,13 +51,17 @@ const AudioControlPanel: React.FC<AudioControlPanelProps> = ({
       <div className="space-y-4">
         {/* Message informatif si désactivé */}
         {!enabled && (
-          <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 text-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-orange-400">ℹ️</span>
-              <span className="font-medium text-orange-300">Audio désactivé</span>
+          <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 text-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-blue-400">🔊</span>
+              <span className="font-medium text-blue-300">Sons d'ambiance disponibles</span>
             </div>
-            <p className="text-orange-200 text-xs">
-              Cliquez sur "Activer" pour profiter des sons d'ambiance qui s'adaptent au cycle jour/nuit.
+            <p className="text-blue-200 text-xs mb-2">
+              <strong>Pourquoi l'audio n'est pas automatique ?</strong><br/>
+              Les navigateurs modernes bloquent la lecture automatique de sons pour protéger votre expérience de navigation.
+            </p>
+            <p className="text-blue-200 text-xs">
+              <strong>Comment activer :</strong> Cliquez simplement sur "Activer" ci-dessous pour profiter des sons d'ambiance qui s'adaptent automatiquement au cycle jour/nuit de votre arrière-plan.
             </p>
           </div>
         )}
