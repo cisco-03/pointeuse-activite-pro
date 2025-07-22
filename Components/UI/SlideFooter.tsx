@@ -15,9 +15,8 @@ const SlideFooter: React.FC<SlideFooterProps> = () => {
 
     // Animation GSAP pour le slide
     const footerContent = document.querySelector('.footer-content');
-    const footerTab = document.querySelector('.footer-tab');
 
-    if (footerContent && footerTab) {
+    if (footerContent) {
       if (newState) {
         // Ouvrir le footer
         gsap.to(footerContent, {
@@ -25,20 +24,10 @@ const SlideFooter: React.FC<SlideFooterProps> = () => {
           duration: 0.4,
           ease: "power2.out"
         });
-        gsap.to(footerTab, {
-          y: -120, // Remonter la languette
-          duration: 0.4,
-          ease: "power2.out"
-        });
       } else {
         // Fermer le footer
         gsap.to(footerContent, {
           y: '100%',
-          duration: 0.4,
-          ease: "power2.in"
-        });
-        gsap.to(footerTab, {
-          y: 0, // Redescendre la languette
           duration: 0.4,
           ease: "power2.in"
         });
@@ -58,35 +47,33 @@ const SlideFooter: React.FC<SlideFooterProps> = () => {
 
   return (
     <>
-      {/* Languette sticky pour ouvrir/fermer */}
-      <div
-        className="footer-tab fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50 cursor-pointer"
-        onClick={toggleFooter}
-        style={{ willChange: 'transform' }}
-      >
-        <div className="bg-gray-800/95 backdrop-blur-md border border-gray-600 border-b-0 rounded-t-lg px-4 py-2 shadow-lg hover:bg-gray-700/95 transition-colors duration-300">
-          <div className="flex items-center space-x-2">
-            {/* Icône de flèche qui tourne selon l'état */}
-            <svg
-              className={`w-4 h-4 text-gray-300 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
-            <span className="text-sm text-gray-300 font-medium">
-              {isOpen ? 'Fermer' : 'Liens'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Contenu du footer slide */}
+      {/* Contenu du footer slide avec languette intégrée */}
       <div
         className="footer-content fixed bottom-0 left-0 right-0 z-40 transform translate-y-full"
         style={{ willChange: 'transform' }}
       >
+        {/* Languette pour ouvrir/fermer - Maintenant à l'intérieur du footer */}
+        <div
+          className="footer-tab absolute left-1/2 transform -translate-x-1/2 -top-[40px] z-10 cursor-pointer"
+          onClick={toggleFooter}
+        >
+          <div className="bg-gray-800/95 backdrop-blur-md border-l border-r border-t border-gray-600 rounded-t-lg px-4 py-2 shadow-lg hover:bg-gray-700/95 transition-colors duration-300">
+            <div className="flex items-center space-x-2">
+              {/* Icône de flèche qui tourne selon l'état */}
+              <svg
+                className={`w-4 h-4 text-gray-300 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              <span className="text-sm text-gray-300 font-medium">
+                {isOpen ? 'Fermer' : 'Liens'}
+              </span>
+            </div>
+          </div>
+        </div>
         <div className="bg-gray-800/95 backdrop-blur-md border-t border-gray-600 shadow-2xl">
           {/* Section des icônes sociales */}
           <div className="p-6">
