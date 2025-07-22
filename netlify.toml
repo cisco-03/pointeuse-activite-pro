@@ -23,8 +23,8 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-    # Permissions Policy pour limiter les fonctionnalités
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # Permissions Policy pour limiter les fonctionnalités (géolocalisation autorisée)
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
 
     # Headers pour Firebase Authentication (résoudre les erreurs Cross-Origin-Opener-Policy)
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
@@ -41,6 +41,19 @@
   for = "*.css"
   [headers.values]
     Content-Type = "text/css"
+
+# 🔧 CISCO: Headers spécifiques pour les fichiers audio
+[[headers]]
+  for = "/sounds/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+    Content-Type = "audio/mpeg"
+
+[[headers]]
+  for = "*.mp3"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+    Content-Type = "audio/mpeg"
 
 # Configuration pour les formulaires Netlify (si nécessaire plus tard)
 [forms]
