@@ -1025,7 +1025,7 @@ export default function App() {
     const [showCountdownFinished, setShowCountdownFinished] = useState(false);
 
     // États pour le système audio d'ambiance
-    const [audioEnabled, setAudioEnabled] = useState(true); // 🔧 CISCO: Audio activé par défaut
+    const [audioEnabled, setAudioEnabled] = useState(false); // 🔧 CISCO: Audio désactivé par défaut - activation manuelle
     const [audioVolume, setAudioVolume] = useState(0.5);
     
     // 🔧 FONCTION: Détection automatique du mode selon l'heure (synchronisée avec DynamicBackground)

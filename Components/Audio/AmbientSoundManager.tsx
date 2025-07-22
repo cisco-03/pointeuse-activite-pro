@@ -186,7 +186,7 @@ const getSoundUrl = (soundType: AmbientSoundType, folder?: string): string => {
 
 const AmbientSoundManager: React.FC<AmbientSoundManagerProps> = ({
   skyMode,
-  enabled = true, // 🔧 CISCO: Audio activé par défaut
+  enabled = false, // 🔧 CISCO: Audio désactivé par défaut - activation manuelle
   volume = 0.5
 }) => {
   // 🔧 CISCO: Support du mixage audio simultané
