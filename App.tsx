@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import DynamicBackground from './DynamicBackground';
-import LoginBackground from './LoginBackground';
-import BackgroundInfo from './BackgroundInfo';
-import LocationTestButton from './LocationTestButton';
+import DynamicBackground from './Components/Background/DynamicBackground';
+import LoginBackground from './Components/Background/LoginBackground';
+import BackgroundInfo from './Components/UI/BackgroundInfo';
+import ControlButtonsWrapper from './Components/UI/ControlButtonsWrapper';
+import SlideFooter from './Components/UI/SlideFooter';
+import AmbientSoundManager from './Components/Audio/AmbientSoundManager';
 
-import { TimeProvider } from './TimeContext';
-import { LocationProvider } from './LocationContext';
+import { TimeProvider, useTime } from './Components/Context/TimeContext';
+import { LocationProvider } from './Components/Context/LocationContext';
 import { auth, db, googleProvider } from './firebase';
 import {
   onAuthStateChanged,
@@ -43,6 +45,27 @@ const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w
 const StopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" /></svg>;
 const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
+
+// Composant wrapper pour utiliser le hook useTime avec les contrôles
+const ControlButtonsWrapperWithTime: React.FC<{
+  audioEnabled: boolean;
+  audioVolume: number;
+  onToggleEnabled: (enabled: boolean) => void;
+  onVolumeChange: (volume: number) => void;
+}> = ({ audioEnabled, audioVolume, onToggleEnabled, onVolumeChange }) => {
+  const { getCurrentTime, setSimulatedTime } = useTime();
+
+  return (
+    <ControlButtonsWrapper
+      currentSimulatedTime={getCurrentTime()}
+      onTimeChange={setSimulatedTime}
+      audioEnabled={audioEnabled}
+      audioVolume={audioVolume}
+      onToggleEnabled={onToggleEnabled}
+      onVolumeChange={onVolumeChange}
+    />
+  );
+};
 
 
 // ========= TYPES =========
@@ -103,6 +126,7 @@ const translations: { [key in Lang]: Translations } = {
     pause: "Pause",
     resume: "Reprendre",
     stop: "Arrêter",
+    cancel: "Annuler",
     addNote: "Ajouter une note...",
     activityLog: "Journal d'activité",
     sessionHistory: "Historique des sessions",
@@ -151,6 +175,22 @@ const translations: { [key in Lang]: Translations } = {
     taskDescription: "Description de la tâche...",
     sessionPaused: "Session en pause",
     loading: "Chargement...",
+    // Traductions pour les intermédiaires
+    pauseReason: "Pourquoi vous arrêtez-vous ?",
+    pauseReasonPlaceholder: "Décrivez la raison de cette pause...",
+    addIntermediate: "Ajouter un intermédiaire",
+    endSession: "Terminer la session",
+    intermediate: "Intermédiaire",
+    // Traductions pour le mode timer
+    switchToCountdown: "Passer au compte à rebours",
+    switchToStopwatch: "Passer au chronomètre",
+    setDuration: "Définir la durée",
+    minutes: "Minutes",
+    // Traductions pour les notifications de fin de compte à rebours
+    timeUp: "TEMPS ÉCOULÉ !",
+    countdownFinished: "Votre compte à rebours est terminé.",
+    sessionAutoSaved: "Session automatiquement sauvegardée",
+    understood: "COMPRIS !",
   },
   en: {
     loginTitle: "Pro Activity Tracker",
@@ -166,6 +206,7 @@ const translations: { [key in Lang]: Translations } = {
     pause: "Pause",
     resume: "Resume",
     stop: "Stop",
+    cancel: "Cancel",
     addNote: "Add a note...",
     activityLog: "Activity Log",
     sessionHistory: "Session History",
@@ -214,16 +255,34 @@ const translations: { [key in Lang]: Translations } = {
     taskDescription: "Task description...",
     sessionPaused: "Session paused",
     loading: "Loading...",
+    // Traductions pour les intermédiaires
+    pauseReason: "Why are you stopping?",
+    pauseReasonPlaceholder: "Describe the reason for this pause...",
+    addIntermediate: "Add intermediate",
+    endSession: "End session",
+    intermediate: "Intermediate",
+    // Traductions pour le mode timer
+    switchToCountdown: "Switch to countdown",
+    switchToStopwatch: "Switch to stopwatch",
+    setDuration: "Set duration",
+    minutes: "Minutes",
+    // Traductions pour les notifications de fin de compte à rebours
+    timeUp: "TIME'S UP!",
+    countdownFinished: "Your countdown is finished.",
+    sessionAutoSaved: "Session automatically saved",
+    understood: "GOT IT!",
   },
 };
 
 
 // ========= HELPER FUNCTIONS =========
-const formatTime = (totalSeconds: number): string => {
+const formatTime = (totalMilliseconds: number): string => {
+  const totalSeconds = Math.floor(totalMilliseconds / 1000);
   const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
   const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
   const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
+  const milliseconds = Math.floor(totalMilliseconds % 1000).toString().padStart(3, '0');
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 };
 
 const formatTimestamp = (ts: Timestamp | Date, lang: Lang): string => {
@@ -477,19 +536,19 @@ const useFirestore = (userId: string | undefined) => {
 
 
 // --- useTimer Hook ---
-const useTimer = (onStop: (elapsedSeconds: number) => void) => {
-    const [elapsedTime, setElapsedTime] = useState(0);
+const useTimer = (onStop: (elapsedMilliseconds: number) => void) => {
+    const [elapsedTime, setElapsedTime] = useState(0); // en millisecondes maintenant
     const [status, setStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
     const intervalRef = useRef<number | null>(null);
     const startTimeRef = useRef<number>(0);
     const pauseTimeRef = useRef<number>(0);
-    
+
     const start = () => {
-        startTimeRef.current = Date.now() - (elapsedTime * 1000);
+        startTimeRef.current = Date.now() - elapsedTime;
         setStatus('running');
         intervalRef.current = window.setInterval(() => {
-            setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
-        }, 1000);
+            setElapsedTime(Date.now() - startTimeRef.current);
+        }, 10); // Mise à jour toutes les 10ms pour les millisecondes
     };
 
     const pause = () => {
@@ -532,6 +591,149 @@ const useTimer = (onStop: (elapsedSeconds: number) => void) => {
     }, []);
 
     return { elapsedTime, status, start, pause, resume, stop, forcePause };
+};
+
+// --- useCountdown Hook simple ---
+const useCountdown = (onFinish: () => void) => {
+    const [remainingTime, setRemainingTime] = useState(0);
+    const [status, setStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
+    const [initialTime, setInitialTime] = useState(0);
+    const intervalRef = useRef<number | null>(null);
+    const startTimeRef = useRef<number>(0);
+    const pauseTimeRef = useRef<number>(0);
+
+    const start = (durationMs: number) => {
+        setInitialTime(durationMs);
+        setRemainingTime(durationMs);
+        startTimeRef.current = Date.now();
+        setStatus('running');
+        intervalRef.current = window.setInterval(() => {
+            const elapsed = Date.now() - startTimeRef.current;
+            const remaining = Math.max(0, durationMs - elapsed);
+            setRemainingTime(remaining);
+
+            if (remaining <= 0) {
+                setStatus('stopped');
+                if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                }
+                onFinish();
+            }
+        }, 10);
+    };
+
+    const pause = () => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+            pauseTimeRef.current = Date.now();
+            setStatus('paused');
+        }
+    };
+
+    const resume = () => {
+        if (status === 'paused' && remainingTime > 0) {
+            const pausedDuration = Date.now() - pauseTimeRef.current;
+            startTimeRef.current += pausedDuration;
+            setStatus('running');
+            intervalRef.current = window.setInterval(() => {
+                const elapsed = Date.now() - startTimeRef.current;
+                const remaining = Math.max(0, initialTime - elapsed);
+                setRemainingTime(remaining);
+
+                if (remaining <= 0) {
+                    setStatus('stopped');
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                    }
+                    onFinish();
+                }
+            }, 10);
+        }
+    };
+
+    const stop = () => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+        setRemainingTime(0);
+        setStatus('stopped');
+    };
+
+    const forcePause = useCallback(() => {
+        if (status === 'running') {
+            pause();
+        }
+    }, [status]);
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, []);
+
+    return { remainingTime, status, start, pause, resume, stop, forcePause };
+};
+
+
+
+// --- Modal pour les intermédiaires ---
+const IntermediateModal: React.FC<{
+    t: Translations;
+    onConfirm: (note: string) => void;
+    onEndSession: (note: string) => void;
+    onCancel: () => void;
+}> = ({ t, onConfirm, onEndSession, onCancel }) => {
+    const [note, setNote] = useState('');
+
+    const handleAddIntermediate = () => {
+        onConfirm(note);
+        setNote('');
+    };
+
+    const handleEndSession = () => {
+        onEndSession(note);
+        setNote('');
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                <h3 className="text-lg font-bold text-white mb-4">{t.pauseReason as string}</h3>
+                <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder={t.pauseReasonPlaceholder as string}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    rows={3}
+                    autoFocus
+                />
+                <div className="flex gap-3 mt-6">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        {t.cancel as string}
+                    </button>
+                    <button
+                        onClick={handleAddIntermediate}
+                        className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        {t.addIntermediate as string}
+                    </button>
+                    <button
+                        onClick={handleEndSession}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        {t.endSession as string}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 // --- useInactivityDetector Hook ---
@@ -814,11 +1016,61 @@ export default function App() {
     const [showRandomCheckModal, setShowRandomCheckModal] = useState(false);
     const randomCheckTimerRef = useRef<number | null>(null);
 
+    // États pour le système d'intermédiaires
+    const [showIntermediateModal, setShowIntermediateModal] = useState(false);
 
-    const handleStop = (elapsedSeconds: number) => {
+    // États pour le mode timer (chronomètre/compte à rebours)
+    const [timerMode, setTimerMode] = useState<'stopwatch' | 'countdown'>('stopwatch');
+    const [countdownDuration, setCountdownDuration] = useState(5 * 60 * 1000); // 5 minutes par défaut
+    const [showCountdownFinished, setShowCountdownFinished] = useState(false);
+
+    // États pour le système audio d'ambiance
+    const [audioEnabled, setAudioEnabled] = useState(true); // 🔧 CISCO: Audio activé par défaut
+    const [audioVolume, setAudioVolume] = useState(0.5);
+    
+    // 🔧 FONCTION: Détection automatique du mode selon l'heure (synchronisée avec DynamicBackground)
+    const getAutoModeFromCurrentTime = (): string => {
+        const now = new Date();
+        const hour = now.getHours();
+
+        if (hour >= 5 && hour < 6) {
+            return 'dawn';
+        } else if (hour >= 6 && hour < 8) {
+            return 'sunrise';
+        } else if (hour >= 8 && hour < 11) {
+            return 'morning';
+        } else if (hour >= 11 && hour < 15) {
+            return 'midday';
+        } else if (hour >= 15 && hour < 18) {
+            return 'afternoon';
+        } else if (hour >= 18 && hour < 20) {
+            return 'sunset';
+        } else if (hour >= 20 && hour < 22) {
+            return 'dusk';
+        } else {
+            return 'night';
+        }
+    };
+
+    // 🔧 NOUVEAU: État pour tracker le mode de background actuel avec détection automatique
+    const [currentBackgroundMode, setCurrentBackgroundMode] = useState<string>(() => {
+        const autoMode = getAutoModeFromCurrentTime();
+        console.log(`🎵 App: Mode audio initial détecté: ${autoMode}`);
+        return autoMode;
+    });
+
+    // 🔧 CALLBACK: Réception des changements de mode depuis DynamicBackground
+    const handleBackgroundModeChange = useCallback((mode: string) => {
+        console.log(`🎨 App: Mode de background changé vers ${mode}`);
+        setCurrentBackgroundMode(mode);
+    }, []);
+
+
+    const handleStop = (elapsedMilliseconds: number) => {
         if (!user || !sessionStartTime || !selectedAgencyId) return;
-        
+
         const selectedAgency = agencies.find(a => a.id === selectedAgencyId);
+        const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000); // Conversion pour la sauvegarde
 
         const sessionData: Omit<Session, 'id'> = {
             userId: user.uid,
@@ -830,7 +1082,7 @@ export default function App() {
             logs: currentLogs,
         };
         saveSession(sessionData);
-        
+
         // Reset state
         setCurrentLogs([]);
         setSessionStartTime(null);
@@ -839,15 +1091,154 @@ export default function App() {
         if (randomCheckTimerRef.current) clearTimeout(randomCheckTimerRef.current);
     };
 
-    const { elapsedTime, status, start, pause, resume, stop, forcePause } = useTimer(handleStop);
+    // Nouvelle fonction pour gérer l'arrêt avec intermédiaire
+    const handleStopWithIntermediate = () => {
+        setShowIntermediateModal(true);
+        if (timerMode === 'countdown') {
+            countdown.pause();
+        } else {
+            pause();
+        }
+    };
 
-    // Vérifier si c'est la première visite
+    const handleIntermediateConfirm = (note: string) => {
+        const intermediateLog: LogEntry = {
+            timestamp: Timestamp.now(),
+            note: `[${t.intermediate as string}] ${note || 'Pause sans description'}`
+        };
+        setCurrentLogs(prev => [...prev, intermediateLog]);
+        setShowIntermediateModal(false);
+        // Le timer reste en pause, l'utilisateur peut reprendre avec le bouton Resume
+    };
+
+    const handleIntermediateEndSession = (note: string) => {
+        if (note.trim()) {
+            const finalLog: LogEntry = {
+                timestamp: Timestamp.now(),
+                note: `[${t.intermediate as string}] ${note}`
+            };
+            setCurrentLogs(prev => [...prev, finalLog]);
+        }
+        setShowIntermediateModal(false);
+        if (timerMode === 'countdown') {
+            countdown.stop();
+        } else {
+            stop();
+        }
+    };
+
+    const handleIntermediateCancel = () => {
+        setShowIntermediateModal(false);
+        if (timerMode === 'countdown') {
+            countdown.resume();
+        } else {
+            resume();
+        }
+    };
+
+    // Fonction pour demander la permission de notification
+    const requestNotificationPermission = async () => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission();
+        }
+    };
+
+    // Fonction pour jouer un son d'alerte
+    const playAlertSound = () => {
+        // Son d'alerte plus long et plus audible
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+        // Créer une séquence de bips
+        const playBeep = (frequency: number, duration: number, delay: number) => {
+            setTimeout(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            }, delay);
+        };
+
+        // Séquence de 3 bips de plus en plus aigus
+        playBeep(800, 0.2, 0);
+        playBeep(1000, 0.2, 300);
+        playBeep(1200, 0.3, 600);
+    };
+
+    // Gestion de la fin du compte à rebours avec notifications améliorées
+    const handleCountdownFinish = () => {
+        setShowCountdownFinished(true);
+
+        // Notification navigateur améliorée
+        if (Notification.permission === 'granted') {
+            const notification = new Notification('⏰ Compte à rebours terminé !', {
+                body: "Votre temps est écoulé. Cliquez pour revenir à l'application.",
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: 'countdown-finished',
+                requireInteraction: true, // La notification reste jusqu'à interaction
+                silent: false
+            });
+
+            // Fermer la notification après 10 secondes si pas d'interaction
+            setTimeout(() => notification.close(), 10000);
+
+            // Focus sur la fenêtre quand on clique sur la notification
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+        }
+
+        // Son d'alerte amélioré
+        try {
+            playAlertSound();
+        } catch (error) {
+            // Fallback avec audio HTML5 si Web Audio API échoue
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+            audio.play().catch(() => {}); // Ignore les erreurs de lecture
+        }
+
+        // Faire clignoter l'onglet du navigateur
+        let originalTitle = document.title;
+        let isBlinking = true;
+        const blinkInterval = setInterval(() => {
+            document.title = isBlinking ? `⏰ ${t.timeUp as string}` : originalTitle;
+            isBlinking = !isBlinking;
+        }, 1000);
+
+        // Arrêter le clignotement après 30 secondes ou quand la modal est fermée
+        setTimeout(() => {
+            clearInterval(blinkInterval);
+            document.title = originalTitle;
+        }, 30000);
+
+        // Terminer la session comme un chronomètre normal
+        handleStop(countdownDuration);
+    };
+
+    const { elapsedTime, status, start, pause, resume, stop, forcePause } = useTimer(handleStop);
+    const countdown = useCountdown(handleCountdownFinish);
+
+    // Vérifier si c'est la première visite et demander les permissions
     useEffect(() => {
         if (user) {
             const hasSeenWelcome = localStorage.getItem(`hasSeenWelcome_${user.uid}`);
             if (!hasSeenWelcome) {
                 setShowWelcome(true);
             }
+
+            // Demander la permission de notification
+            requestNotificationPermission();
         }
     }, [user]);
 
@@ -873,7 +1264,12 @@ export default function App() {
         setSessionStartTime(startTime);
         const firstLog: LogEntry = { timestamp: startTime, note: firstTask };
         setCurrentLogs([firstLog]);
-        start();
+
+        if (timerMode === 'countdown') {
+            countdown.start(countdownDuration);
+        } else {
+            start();
+        }
         setupRandomCheck();
     };
     
@@ -937,7 +1333,7 @@ export default function App() {
     return (
         <LocationProvider>
             <TimeProvider>
-                <DynamicBackground>
+                <DynamicBackground onModeChange={handleBackgroundModeChange}>
                     <div className="font-sans">
 
                         <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
@@ -991,22 +1387,58 @@ export default function App() {
                         </div>
                         {/* Right: Timer and Controls */}
                         <div className="flex flex-col items-center justify-center h-full">
-                            <p className="font-mono text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-gray-200 tracking-wider text-center">
-                                {formatTime(elapsedTime)}
-                            </p>
-                            {status === 'paused' && <p className="text-yellow-400 font-semibold animate-pulse text-sm sm:text-base">{t.sessionPaused as string}</p>}
+                            {/* Bouton de permutation de mode */}
+                            <button
+                                onClick={() => setTimerMode(timerMode === 'stopwatch' ? 'countdown' : 'stopwatch')}
+                                disabled={status !== 'stopped'}
+                                className="mb-3 px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {timerMode === 'stopwatch' ? `⏰ ${t.switchToCountdown as string}` : `⏱️ ${t.switchToStopwatch as string}`}
+                            </button>
+
+                            {/* Configuration du compte à rebours */}
+                            {timerMode === 'countdown' && status === 'stopped' && (
+                                <div className="mb-4 flex items-center gap-2">
+                                    <label className="text-sm text-gray-400">{t.setDuration as string}:</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="999"
+                                        value={Math.floor(countdownDuration / (60 * 1000))}
+                                        onChange={(e) => setCountdownDuration(Math.max(1, parseInt(e.target.value) || 5) * 60 * 1000)}
+                                        className="w-16 bg-gray-700 border border-gray-600 rounded-md p-1 text-center text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                    />
+                                    <span className="text-sm text-gray-400">{t.minutes as string}</span>
+                                </div>
+                            )}
+
+                            <div className="font-mono text-gray-200 tracking-wider text-center flex items-baseline justify-center">
+                                <span className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl">
+                                    {timerMode === 'countdown'
+                                        ? formatTime(countdown.remainingTime).split('.')[0]
+                                        : formatTime(elapsedTime).split('.')[0]
+                                    }
+                                </span>
+                                <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl text-teal-400 ml-1">
+                                    .{timerMode === 'countdown'
+                                        ? formatTime(countdown.remainingTime).split('.')[1]
+                                        : formatTime(elapsedTime).split('.')[1]
+                                    }
+                                </span>
+                            </div>
+                            {(status === 'paused' || countdown.status === 'paused') && <p className="text-yellow-400 font-semibold animate-pulse text-sm sm:text-base">{t.sessionPaused as string}</p>}
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-4 sm:mt-6 w-full sm:w-auto">
-                                {status === 'stopped' && (
+                                {(status === 'stopped' && countdown.status === 'stopped') && (
                                     <button onClick={handleStart} disabled={!canStart} className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed w-full sm:w-auto text-sm sm:text-base"><PlayIcon /> <span>{t.start as string}</span></button>
                                 )}
-                                {status === 'running' && (
-                                    <button onClick={pause} className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><PauseIcon /> <span>{t.pause as string}</span></button>
+                                {(status === 'running' || countdown.status === 'running') && (
+                                    <button onClick={timerMode === 'countdown' ? countdown.pause : pause} className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><PauseIcon /> <span>{t.pause as string}</span></button>
                                 )}
-                                {status === 'paused' && (
-                                    <button onClick={resume} className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><PlayIcon /> <span>{t.resume as string}</span></button>
+                                {(status === 'paused' || countdown.status === 'paused') && (
+                                    <button onClick={timerMode === 'countdown' ? countdown.resume : resume} className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><PlayIcon /> <span>{t.resume as string}</span></button>
                                 )}
-                                {(status === 'running' || status === 'paused') && (
-                                    <button onClick={stop} className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><StopIcon/> <span>{t.stop as string}</span></button>
+                                {(status === 'running' || status === 'paused' || countdown.status === 'running' || countdown.status === 'paused') && (
+                                    <button onClick={handleStopWithIntermediate} className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors w-full sm:w-auto text-sm sm:text-base"><StopIcon/> <span>{t.stop as string}</span></button>
                                 )}
                             </div>
                         </div>
@@ -1022,7 +1454,7 @@ export default function App() {
                                     value={currentNote}
                                     onChange={(e) => setCurrentNote(e.target.value)}
                                     placeholder={t.addNote as string}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
                                     className="flex-grow bg-gray-700 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
                                 />
                                 <button onClick={handleAddNote} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md">{t.add as string}</button>
@@ -1095,6 +1527,46 @@ export default function App() {
                 </div>
             )}
 
+            {/* Modal des intermédiaires */}
+            {showIntermediateModal && (
+                <IntermediateModal
+                    t={t}
+                    onConfirm={handleIntermediateConfirm}
+                    onEndSession={handleIntermediateEndSession}
+                    onCancel={handleIntermediateCancel}
+                />
+            )}
+
+            {/* Modal de fin de compte à rebours avec effets visuels améliorés */}
+            {showCountdownFinished && (
+                <div className="fixed inset-0 bg-red-900 bg-opacity-90 flex items-center justify-center z-50 p-4 animate-pulse">
+                    <div className="bg-gradient-to-br from-red-800 to-orange-800 rounded-lg p-8 max-w-md w-full text-center shadow-2xl border-4 border-red-500 animate-bounce">
+                        <div className="text-8xl mb-6 animate-spin">⏰</div>
+                        <h2 className="text-3xl font-bold text-white mb-4 animate-pulse">
+                            🚨 {t.timeUp as string} 🚨
+                        </h2>
+                        <p className="text-red-100 mb-6 text-lg font-semibold">
+                            {t.countdownFinished as string}
+                        </p>
+                        <div className="mb-6">
+                            <div className="text-yellow-300 text-sm mb-2">
+                                ⚡ {t.sessionAutoSaved as string} ⚡
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setShowCountdownFinished(false);
+                                // Arrêter le clignotement du titre
+                                document.title = 'Pointeuse d\'Activité Pro';
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg border-2 border-red-400 animate-pulse"
+                        >
+                            ✅ {t.understood as string}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Help Modal */}
             {showHelp && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1131,8 +1603,26 @@ export default function App() {
                   }
                 }
             `}</style>
+                    
+                    {/* Système d'ambiance sonore - Connecté automatiquement */}
+                    <AmbientSoundManager
+                        skyMode={currentBackgroundMode}
+                        enabled={audioEnabled}
+                        volume={audioVolume}
+                    />
+                    
                     <BackgroundInfo />
-                    <LocationTestButton />
+
+                    {/* Boutons de contrôle repositionnés avec flexbox */}
+                    <ControlButtonsWrapperWithTime
+                        audioEnabled={audioEnabled}
+                        audioVolume={audioVolume}
+                        onToggleEnabled={setAudioEnabled}
+                        onVolumeChange={setAudioVolume}
+                    />
+
+                    {/* Footer slide avec liens sociaux */}
+                    <SlideFooter />
                 </div>
             </DynamicBackground>
         </TimeProvider>
