@@ -87,10 +87,12 @@ type BackgroundMode =
 interface TimeSimulatorProps {
   onTimeChange: (simulatedTime: Date) => void;
   currentSimulatedTime: Date;
+  onSetMode: (mode: string) => void;
+  onResetToAuto: () => void;
   lang?: Lang;
 }
 
-const TimeSimulator: React.FC<TimeSimulatorProps> = ({ onTimeChange, currentSimulatedTime, lang = 'fr' }) => {
+const TimeSimulator: React.FC<TimeSimulatorProps> = ({ onTimeChange, currentSimulatedTime, onSetMode, onResetToAuto, lang = 'fr' }) => {
   const t = translations[lang];
   const { userLocation, locationReady } = useLocation();
   const [isVisible, setIsVisible] = useState(false);
@@ -137,21 +139,6 @@ const TimeSimulator: React.FC<TimeSimulatorProps> = ({ onTimeChange, currentSimu
     return simulated;
   };
 
-  // Fonction pour changer le mode de fond directement avec synchronisation audio immédiate
-  const setBackgroundMode = (mode: BackgroundMode) => {
-    console.log(`🎨 TimeSimulator: Changement de mode vers ${mode}`);
-
-    // 🔧 CISCO: Changement immédiat du mode de background
-    if (typeof (window as any).setBackgroundMode === 'function') {
-      (window as any).setBackgroundMode(mode);
-    }
-
-    // 🔧 CISCO: Synchronisation immédiate de l'audio via l'événement global
-    if (typeof (window as any).triggerAudioModeChange === 'function') {
-      console.log(`🎵 TimeSimulator: Déclenchement immédiat du changement audio vers ${mode}`);
-      (window as any).triggerAudioModeChange(mode);
-    }
-  };
 
   // Phases de test avec modes de fond correspondants
   const testPhases = [
@@ -207,67 +194,9 @@ const TimeSimulator: React.FC<TimeSimulatorProps> = ({ onTimeChange, currentSimu
   // Retour au temps réel avec calcul solaire basé sur la géolocalisation
   const resetToRealTime = () => {
     console.log('🔄 Actualisation vers le temps réel...');
-    const currentRealTime = new Date();
-    onTimeChange(currentRealTime);
-
-    // 🔧 CISCO: Utiliser les données solaires réelles selon la position géographique
-    if (locationReady && sunTimes && typeof (window as any).setBackgroundMode === 'function') {
-      const now = currentRealTime.getTime();
-      let targetMode: BackgroundMode;
-
-      // Calculer le mode basé sur les heures solaires réelles de la position de l'utilisateur
-      if (now < sunTimes.dawn.getTime()) {
-        targetMode = 'night';
-      } else if (now < sunTimes.sunrise.getTime()) {
-        targetMode = 'dawn';
-      } else if (now < sunTimes.sunrise.getTime() + (2 * 60 * 60 * 1000)) { // 2h après lever
-        targetMode = 'sunrise';
-      } else if (now < sunTimes.solarNoon.getTime() - (1 * 60 * 60 * 1000)) { // 1h avant midi solaire
-        targetMode = 'morning';
-      } else if (now < sunTimes.solarNoon.getTime() + (3 * 60 * 60 * 1000)) { // 3h après midi solaire
-        targetMode = 'midday';
-      } else if (now < sunTimes.sunset.getTime() - (1 * 60 * 60 * 1000)) { // 1h avant coucher
-        targetMode = 'afternoon';
-      } else if (now < sunTimes.sunset.getTime()) {
-        targetMode = 'sunset';
-      } else if (now < sunTimes.dusk.getTime()) {
-        targetMode = 'dusk';
-      } else {
-        targetMode = 'night';
-      }
-
-      console.log(`🌍 Mode calculé selon position géographique (${userLocation.lat.toFixed(2)}, ${userLocation.lon.toFixed(2)}): ${targetMode}`);
-      (window as any).setBackgroundMode(targetMode);
-    } else {
-      // Fallback: utiliser l'heure locale simple si pas de géolocalisation
-      console.log('⚠️ Fallback: utilisation de l\'heure locale simple (pas de géolocalisation)');
-      const hour = currentRealTime.getHours();
-      let targetMode: BackgroundMode;
-
-      if (hour >= 5 && hour < 6) {
-        targetMode = 'dawn';
-      } else if (hour >= 6 && hour < 8) {
-        targetMode = 'sunrise';
-      } else if (hour >= 8 && hour < 11) {
-        targetMode = 'morning';
-      } else if (hour >= 11 && hour < 15) {
-        targetMode = 'midday';
-      } else if (hour >= 15 && hour < 18) {
-        targetMode = 'afternoon';
-      } else if (hour >= 18 && hour < 20) {
-        targetMode = 'sunset';
-      } else if (hour >= 20 && hour < 22) {
-        targetMode = 'dusk';
-      } else {
-        targetMode = 'night';
-      }
-
-      if (typeof (window as any).setBackgroundMode === 'function') {
-        (window as any).setBackgroundMode(targetMode);
-      }
-    }
-
-    console.log(`✅ Temps réel actualisé: ${currentRealTime.toLocaleTimeString('fr-FR')}`);
+    onTimeChange(new Date());
+    onResetToAuto();
+    console.log(`✅ Temps réel actualisé`);
   };
 
   // Formatage de l'heure pour l'affichage
@@ -338,115 +267,8 @@ const TimeSimulator: React.FC<TimeSimulatorProps> = ({ onTimeChange, currentSimu
             <button
               key={index}
               onClick={() => {
-                console.log(`🎵 TimeSimulator: Clic sur bouton ${phase.name} - Mode: ${phase.mode}`);
-
-                // 🔧 CISCO: FORCER le changement audio AVANT tout (priorité absolue)
-                if (typeof (window as any).triggerAudioModeChange === 'function') {
-                  console.log(`🎵 TimeSimulator: FORCE changement audio vers ${phase.mode} (mode manuel activé)`);
-                  (window as any).triggerAudioModeChange(phase.mode);
-                }
-
-                // 🔧 CISCO: Changement de mode visuel
-                setBackgroundMode(phase.mode);
-
-                // 🔧 CISCO: Changement d'heure simulée
+                onSetMode(phase.mode);
                 onTimeChange(phase.time);
-
-                // 🌌 CISCO: Déclencher l'animation de nuit profonde - Soleil TRÈS BAS !
-                if (phase.mode === 'night') {
-                  console.log('🌌 Déclenchement IMMÉDIAT de l\'animation de nuit profonde - Soleil très bas');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerNightAnimation === 'function') {
-                    (window as any).triggerNightAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerNightAnimation non disponible');
-                  }
-                }
-
-                // 🌅 CISCO: Déclencher l'animation de l'aube - Soleil SOUS l'horizon !
-                if (phase.mode === 'dawn') {
-                  console.log('🌅 Déclenchement IMMÉDIAT de l\'animation de l\'aube - Soleil sous l\'horizon');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerDawnAnimation === 'function') {
-                    (window as any).triggerDawnAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerDawnAnimation non disponible');
-                  }
-                }
-
-                // 🌅 CISCO: Déclencher l'animation de lever de soleil sur TOUS les modes !
-                if (phase.mode === 'sunrise') {
-                  console.log('🌅 Déclenchement IMMÉDIAT de l\'animation de lever de soleil');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerSunriseAnimation === 'function') {
-                    (window as any).triggerSunriseAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerSunriseAnimation non disponible');
-                  }
-                }
-
-                // 🌄 CISCO: Déclencher l'animation du matin (9h) avec courbe vers la gauche !
-                if (phase.mode === 'morning') {
-                  console.log('🌄 Déclenchement IMMÉDIAT de l\'animation du matin - Soleil vers la gauche');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerMorningAnimation === 'function') {
-                    (window as any).triggerMorningAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerMorningAnimation non disponible');
-                  }
-                }
-
-                // ☀️ CISCO: Déclencher l'animation du zénith (12h) - Soleil au plus haut !
-                if (phase.mode === 'midday') {
-                  console.log('☀️ Déclenchement IMMÉDIAT de l\'animation du zénith - Soleil au plus haut');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerMiddayAnimation === 'function') {
-                    (window as any).triggerMiddayAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerMiddayAnimation non disponible');
-                  }
-                }
-
-                // 🌅 CISCO: Déclencher l'animation de l'après-midi (15h) - Début de la descente vers la droite !
-                if (phase.mode === 'afternoon') {
-                  console.log('🌅 Déclenchement IMMÉDIAT de l\'animation de l\'après-midi - Soleil vers la droite');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerAfternoonAnimation === 'function') {
-                    (window as any).triggerAfternoonAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerAfternoonAnimation non disponible');
-                  }
-                }
-
-                // 🌇 CISCO: Déclencher l'animation du coucher (18h) - Soleil à l'horizon droit !
-                if (phase.mode === 'sunset') {
-                  console.log('🌇 Déclenchement IMMÉDIAT de l\'animation du coucher - Soleil à l\'horizon');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerSunsetAnimation === 'function') {
-                    (window as any).triggerSunsetAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerSunsetAnimation non disponible');
-                  }
-                }
-
-                // 🌆 CISCO: Déclencher l'animation du crépuscule - Soleil DERRIÈRE l'horizon !
-                if (phase.mode === 'dusk') {
-                  console.log('🌆 Déclenchement IMMÉDIAT de l\'animation du crépuscule - Soleil derrière l\'horizon');
-
-                  // CISCO: SUPPRESSION du setTimeout - Déclenchement IMMÉDIAT
-                  if (typeof (window as any).triggerDuskAnimation === 'function') {
-                    (window as any).triggerDuskAnimation();
-                  } else {
-                    console.warn('⚠️ Fonction triggerDuskAnimation non disponible');
-                  }
-                }
               }}
               className="text-left bg-gradient-to-r from-[#0D9488] to-[#0D9488]/80 hover:from-[#A550F5] hover:to-[#A550F5]/80 px-3 py-3 rounded text-xs transition-all duration-300 shadow-md transform hover:scale-105"
               title={`Mode ${phase.name} à ${formatTime(phase.time)}`}

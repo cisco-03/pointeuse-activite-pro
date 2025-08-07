@@ -8,6 +8,8 @@ interface ControlButtonsWrapperProps {
   // Props pour TimeSimulator
   onTimeChange: (simulatedTime: Date) => void;
   currentSimulatedTime: Date;
+  onSetMode: (mode: string) => void;
+  onResetToAuto: () => void;
 
   // Props pour AudioControlPanel
   audioEnabled: boolean;
@@ -26,6 +28,8 @@ const ControlButtonsWrapper: React.FC<ControlButtonsWrapperProps> = ({
   audioVolume,
   onToggleEnabled,
   onVolumeChange,
+  onSetMode,
+  onResetToAuto,
   lang = 'fr'
 }) => {
   return (
@@ -37,6 +41,8 @@ const ControlButtonsWrapper: React.FC<ControlButtonsWrapperProps> = ({
           <TimeSimulator
             onTimeChange={onTimeChange}
             currentSimulatedTime={currentSimulatedTime}
+            onSetMode={onSetMode}
+            onResetToAuto={onResetToAuto}
             lang={lang}
           />
         </div>

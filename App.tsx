@@ -52,8 +52,10 @@ const ControlButtonsWrapperWithTime: React.FC<{
   audioVolume: number;
   onToggleEnabled: (enabled: boolean) => void;
   onVolumeChange: (volume: number) => void;
+  onSetMode: (mode: string) => void;
+  onResetToAuto: () => void;
   lang: Lang;
-}> = ({ audioEnabled, audioVolume, onToggleEnabled, onVolumeChange, lang }) => {
+}> = ({ audioEnabled, audioVolume, onToggleEnabled, onVolumeChange, onSetMode, onResetToAuto, lang }) => {
   const { getCurrentTime, setSimulatedTime } = useTime();
 
   return (
@@ -64,6 +66,8 @@ const ControlButtonsWrapperWithTime: React.FC<{
       audioVolume={audioVolume}
       onToggleEnabled={onToggleEnabled}
       onVolumeChange={onVolumeChange}
+      onSetMode={onSetMode}
+      onResetToAuto={onResetToAuto}
       lang={lang}
     />
   );
@@ -1299,42 +1303,68 @@ export default function App() {
     const [audioEnabled, setAudioEnabled] = useState(false); // 🔧 CISCO: Audio désactivé par défaut - activation manuelle
     const [audioVolume, setAudioVolume] = useState(0.5);
     
-    // 🔧 FONCTION: Détection automatique du mode selon l'heure (synchronisée avec DynamicBackground)
-    const getAutoModeFromCurrentTime = (): string => {
-        const now = new Date();
-        const hour = now.getHours();
+    const [currentBackgroundMode, setCurrentBackgroundMode] = useState('night');
+    const [isManualMode, setIsManualMode] = useState(false);
+    const { userLocation, locationReady } = useLocation(); // Get location from context
 
-        if (hour >= 5 && hour < 6) {
-            return 'dawn';
-        } else if (hour >= 6 && hour < 8) {
-            return 'sunrise';
-        } else if (hour >= 8 && hour < 11) {
-            return 'morning';
-        } else if (hour >= 11 && hour < 15) {
-            return 'midday';
-        } else if (hour >= 15 && hour < 18) {
-            return 'afternoon';
-        } else if (hour >= 18 && hour < 20) {
-            return 'sunset';
-        } else if (hour >= 20 && hour < 22) {
-            return 'dusk';
+    // Centralized function to determine mode from time
+    const getModeForTime = useCallback((date: Date) => {
+        if (locationReady && userLocation) {
+            const sunTimes = SunCalc.getTimes(date, userLocation.lat, userLocation.lon);
+            const currentTime = date.getTime();
+            if (currentTime < sunTimes.dawn.getTime()) return 'night';
+            if (currentTime < sunTimes.sunrise.getTime()) return 'dawn';
+            if (currentTime < sunTimes.sunrise.getTime() + (2 * 60 * 60 * 1000)) return 'sunrise';
+            if (currentTime < sunTimes.solarNoon.getTime() - (1 * 60 * 60 * 1000)) return 'morning';
+            if (currentTime < sunTimes.solarNoon.getTime() + (3 * 60 * 60 * 1000)) return 'midday';
+            if (currentTime < sunTimes.sunset.getTime() - (1 * 60 * 60 * 1000)) return 'afternoon';
+            if (currentTime < sunTimes.sunset.getTime()) return 'sunset';
+            if (currentTime < sunTimes.dusk.getTime()) return 'dusk';
+            return 'night';
         } else {
+            const hour = date.getHours();
+            if (hour >= 5 && hour < 6) return 'dawn';
+            if (hour >= 6 && hour < 8) return 'sunrise';
+            if (hour >= 8 && hour < 11) return 'morning';
+            if (hour >= 11 && hour < 15) return 'midday';
+            if (hour >= 15 && hour < 18) return 'afternoon';
+            if (hour >= 18 && hour < 20) return 'sunset';
+            if (hour >= 20 && hour < 22) return 'dusk';
             return 'night';
         }
+    }, [locationReady, userLocation]);
+
+    // Effect for automatic mode changes
+    useEffect(() => {
+        // Set initial mode
+        setCurrentBackgroundMode(getModeForTime(new Date()));
+
+        const interval = setInterval(() => {
+            if (!isManualMode) {
+                setCurrentBackgroundMode(prevMode => {
+                    const newMode = getModeForTime(new Date());
+                    return newMode !== prevMode ? newMode : prevMode;
+                });
+            }
+        }, 60000); // Check every minute
+
+        return () => clearInterval(interval);
+    }, [isManualMode, getModeForTime]);
+
+
+    // Manual mode change handler
+    const handleSetMode = (mode: string) => {
+        console.log(`🕹️ Manual mode override: ${mode}`);
+        setIsManualMode(true);
+        setCurrentBackgroundMode(mode);
     };
 
-    // 🔧 NOUVEAU: État pour tracker le mode de background actuel avec détection automatique
-    const [currentBackgroundMode, setCurrentBackgroundMode] = useState<string>(() => {
-        const autoMode = getAutoModeFromCurrentTime();
-        console.log(`🎵 App: Mode audio initial détecté: ${autoMode}`);
-        return autoMode;
-    });
-
-    // 🔧 CALLBACK: Réception des changements de mode depuis DynamicBackground
-    const handleBackgroundModeChange = useCallback((mode: string) => {
-        console.log(`🎨 App: Mode de background changé vers ${mode}`);
-        setCurrentBackgroundMode(mode);
-    }, []);
+    // Reset to automatic mode
+    const handleResetToAuto = () => {
+        console.log('🔄 Resetting to automatic mode detection.');
+        setIsManualMode(false);
+        setCurrentBackgroundMode(getModeForTime(new Date()));
+    };
 
 
     const handleStop = (elapsedMilliseconds: number) => {
@@ -1613,7 +1643,7 @@ export default function App() {
     return (
         <LocationProvider>
             <TimeProvider>
-                <DynamicBackground onModeChange={handleBackgroundModeChange}>
+                <DynamicBackground skyMode={currentBackgroundMode}>
                     <div className="font-sans">
 
                         <Header
@@ -1988,6 +2018,8 @@ export default function App() {
                         audioVolume={audioVolume}
                         onToggleEnabled={setAudioEnabled}
                         onVolumeChange={setAudioVolume}
+                        onSetMode={handleSetMode}
+                        onResetToAuto={handleResetToAuto}
                         lang={lang}
                     />
 

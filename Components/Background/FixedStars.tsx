@@ -238,8 +238,8 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
 
   // Mise à jour de la visibilité quand le mode change avec transition progressive
   useEffect(() => {
-    // Utiliser la même durée que les transitions du background (8 secondes)
-    updateVisibility(8.0);
+    // Utiliser la même durée que les transitions du background (15 secondes)
+    updateVisibility(15.0);
   }, [skyMode]);
 
   return (

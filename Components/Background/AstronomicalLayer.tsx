@@ -72,18 +72,19 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night'
   };
 
   // Mettre à jour la lune
-  const updateMoon = (mode: string) => {
-    if (!locationReady) return;
+  const updateMoon = (mode: string, duration: number = 15.0) => {
+    if (!locationReady || !moonRef.current) return;
     
     const newMoonOpacity = calculateMoonOpacity(mode);
     const newMoonPhase = calculateMoonPhase();
     
-    setMoonOpacity(newMoonOpacity);
     setMoonPhase(newMoonPhase);
     
-    if (moonRef.current) {
-      moonRef.current.style.opacity = newMoonOpacity.toString();
-    }
+    gsap.to(moonRef.current, {
+        opacity: newMoonOpacity,
+        duration: duration,
+        ease: "power1.inOut"
+    });
   };
 
   // Générer les étoiles une seule fois
@@ -127,21 +128,27 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night'
   };
 
   // 🔧 FONCTION: Mettre à jour la visibilité des étoiles
-  const updateStarsVisibility = (mode: string) => {
+  const updateStarsVisibility = (mode: string, duration: number = 15.0) => {
     if (!starsContainerRef.current) return;
 
     const { visible, opacity } = getStarsVisibility(mode);
     
-    console.log(`⭐ Mise à jour visibilité étoiles pour mode ${mode}: visible=${visible}, opacity=${opacity}`);
+    console.log(`⭐ Transition progressive des étoiles pour mode ${mode}: visible=${visible}, opacity=${opacity}`);
 
     if (visible) {
-      // Rendre les étoiles visibles avec l'opacité appropriée
       starsContainerRef.current.style.display = 'block';
-      starsContainerRef.current.style.opacity = opacity.toString();
-    } else {
-      // Masquer complètement les étoiles
-      starsContainerRef.current.style.display = 'none';
     }
+
+    gsap.to(starsContainerRef.current, {
+        opacity: opacity,
+        duration: duration,
+        ease: "power1.inOut",
+        onComplete: () => {
+            if (!visible && starsContainerRef.current) {
+                starsContainerRef.current.style.display = 'none';
+            }
+        }
+    });
   };
 
   // 🔧 MODE MANUEL: Initialisation simplifiée
@@ -215,16 +222,17 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night'
 
   // 🔧 NOUVEAU: Réagir aux changements de mode
   useEffect(() => {
-    updateStarsVisibility(skyMode);
-    updateMoon(skyMode);
+    const transitionDuration = 15.0;
+    updateStarsVisibility(skyMode, transitionDuration);
+    updateMoon(skyMode, transitionDuration);
   }, [skyMode]);
 
   // Mise à jour quand la géolocalisation est prête
   useEffect(() => {
     if (locationReady) {
-      updateMoon(skyMode);
+      updateMoon(skyMode, 0); // Update instantly if location becomes available
     }
-  }, [locationReady, skyMode]);
+  }, [locationReady]);
 
   return (
     <div

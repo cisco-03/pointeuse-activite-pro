@@ -114,84 +114,13 @@ const TRANSITION_MODES = {
 // Interface pour les props du composant
 interface DynamicBackgroundProps {
   children: React.ReactNode;
-  onModeChange?: (mode: BackgroundMode) => void; // 🔧 NOUVEAU: Callback pour notifier les changements de mode
+  skyMode: string;
 }
 
-const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeChange }) => {
+const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode }) => {
   const { userLocation, locationReady } = useLocation();
-
-  // 🔧 CISCO: Ref pour éviter les problèmes de dépendances avec onModeChange
-  const onModeChangeRef = useRef(onModeChange);
-
-  // Mettre à jour la ref quand onModeChange change
-  useEffect(() => {
-    onModeChangeRef.current = onModeChange;
-  }, [onModeChange]);
-
-  // 🔧 FONCTION: Détection automatique du mode basé sur l'heure du PC
-  const getAutoModeFromCurrentTime = (): BackgroundMode => {
-    const now = new Date();
-
-    // Si géolocalisation disponible, utiliser les calculs solaires précis
-    if (locationReady && userLocation) {
-      const sunTimes = SunCalc.getTimes(now, userLocation.lat, userLocation.lon);
-      const currentTime = now.getTime();
-
-      console.log(`🌍 Calcul du mode selon position géographique (${userLocation.lat.toFixed(2)}, ${userLocation.lon.toFixed(2)})`);
-
-      if (currentTime < sunTimes.dawn.getTime()) {
-        return 'night';
-      } else if (currentTime < sunTimes.sunrise.getTime()) {
-        return 'dawn';
-      } else if (currentTime < sunTimes.sunrise.getTime() + (2 * 60 * 60 * 1000)) { // 2h après lever
-        return 'sunrise';
-      } else if (currentTime < sunTimes.solarNoon.getTime() - (1 * 60 * 60 * 1000)) { // 1h avant midi solaire
-        return 'morning';
-      } else if (currentTime < sunTimes.solarNoon.getTime() + (3 * 60 * 60 * 1000)) { // 3h après midi solaire
-        return 'midday';
-      } else if (currentTime < sunTimes.sunset.getTime() - (1 * 60 * 60 * 1000)) { // 1h avant coucher
-        return 'afternoon';
-      } else if (currentTime < sunTimes.sunset.getTime()) {
-        return 'sunset';
-      } else if (currentTime < sunTimes.dusk.getTime()) {
-        return 'dusk';
-      } else {
-        return 'night';
-      }
-    } else {
-      // Fallback: utiliser l'heure locale simple
-      console.log('⚠️ Fallback: utilisation de l\'heure locale simple (pas de géolocalisation)');
-      const hour = now.getHours();
-
-      if (hour >= 5 && hour < 6) {
-        return 'dawn';
-      } else if (hour >= 6 && hour < 8) {
-        return 'sunrise';
-      } else if (hour >= 8 && hour < 11) {
-        return 'morning';
-      } else if (hour >= 11 && hour < 15) {
-        return 'midday';
-      } else if (hour >= 15 && hour < 18) {
-        return 'afternoon';
-      } else if (hour >= 18 && hour < 20) {
-        return 'sunset';
-      } else if (hour >= 20 && hour < 22) {
-        return 'dusk';
-      } else {
-        return 'night';
-      }
-    }
-  };
-
-  // 🔧 SYSTÈME SIMPLIFIÉ - État pour le pilotage manuel avec détection automatique
-  const [currentMode, setCurrentMode] = useState<BackgroundMode>(() => {
-    // Initialisation avec détection automatique de l'heure
-    const autoMode = getAutoModeFromCurrentTime();
-    console.log(`🕐 Mode automatique détecté au démarrage: ${autoMode} (${new Date().toLocaleTimeString('fr-FR')})`);
-    return autoMode;
-  });
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [transitionPhase, setTransitionPhase] = useState<'fade-out' | 'fade-in'>('fade-out');
+  const currentModeRef = useRef(skyMode);
 
   // 🔧 CISCO: Background UNIQUE - Background.png seulement (simplification)
   const selectedBackground = '/Background.png'; // Background unique pour simplifier
@@ -211,120 +140,19 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
   // 🌅 CISCO: Référence pour l'animation de lever de soleil
   const sunriseAnimationRef = useRef<SunriseAnimationRef>(null);
   
-  // 🌆 CISCO: NOUVELLE FONCTION - Transition progressive spéciale pour coucher de soleil - SYNCHRONISÉ AVEC DÉGRADÉ
-  const applySunsetCloudTransition = (imgElement: HTMLImageElement, duration: number = 15.0) => {
-    console.log(`🌆 Transition progressive coucher de soleil - Baisse luminosité sur ${duration}s`);
-
-    // Filtre initial (lumineux/doré)
-    const initialFilter = 'brightness(1.2) contrast(1.0) saturate(1.3) hue-rotate(10deg)';
-
-    // Filtre final (plus sombre/orangé)
-    const finalFilter = 'brightness(0.8) contrast(1.1) saturate(1.4) hue-rotate(20deg)';
-
-    // Application immédiate du filtre initial
-    gsap.set(imgElement, {
-      filter: initialFilter
-    });
-
-    // Transition progressive vers le filtre final (synchronisée avec arrière-plan)
-    gsap.to(imgElement, {
-      filter: finalFilter,
-      duration: duration, // CISCO: Même durée que dégradé arrière-plan (15s)
-      ease: "power1.inOut", // Easing doux et naturel
-      overwrite: true
-    });
-  };
-
-  // 🔧 CISCO: CROSS FADE progressif pour nuages - SYNCHRONISÉ AVEC DÉGRADÉ
-  const applyCloudTransition = (mode: BackgroundMode, duration: number = 15.0) => {
-    const cloudTint = getCloudTintForMode(mode);
-    const cloudElements = document.querySelectorAll('[data-cloud-element]');
-
-    console.log(`🌤️ CROSS FADE progressif de ${cloudElements.length} nuages vers mode: ${mode} (${duration}s)`);
-    console.log(`🌤️ Filtre nuages appliqué: ${cloudTint}`);
-
-    cloudElements.forEach((cloudElement) => {
-      const img = cloudElement.querySelector('img');
-      if (img) {
-        // 🌆 CISCO: TRAITEMENT SPÉCIAL pour mode SUNSET - Baisse progressive de luminosité
-        if (mode === 'sunset') {
-          applySunsetCloudTransition(img, duration);
-        } else {
-          // 🔧 CISCO: TRANSITION PROGRESSIVE PURE - Pas d'application immédiate
-          gsap.to(img, {
-            filter: cloudTint,
-            duration: duration, // 🔧 CISCO: Durée complète pour synchronisation parfaite (30s)
-            ease: "power1.inOut",
-            overwrite: true
-          });
-        }
-      }
-    });
-  };
-
-  // 🔧 CISCO: NOUVELLE FONCTION - Synchronisation des étoiles avec les transitions principales
-  const applyStarsTransition = (mode: BackgroundMode, duration: number = 15.0) => {
-    // Synchroniser les étoiles fixes
-    const fixedStarsContainer = document.querySelector('[class*="fixed-star"]')?.parentElement;
-    if (fixedStarsContainer) {
-      const visibility = mode === 'night' ? 1 : (mode === 'dusk' || mode === 'dawn' ? 0.3 : 0);
-      console.log(`⭐ SYNCHRONISATION étoiles fixes vers opacité ${visibility} (${duration}s)`);
-
-      gsap.to(fixedStarsContainer, {
-        opacity: visibility,
-        duration: duration,
-        ease: "power1.inOut",
-        overwrite: true
-      });
-    }
-
-    // Synchroniser les étoiles filantes
-    const shootingStarsContainer = document.querySelector('[class*="shooting-star"]')?.parentElement;
-    if (shootingStarsContainer) {
-      const shouldShow = ['night', 'dusk', 'dawn'].includes(mode);
-      const targetOpacity = shouldShow ? (mode === 'night' ? 1 : 0.3) : 0;
-      console.log(`🌠 SYNCHRONISATION étoiles filantes vers opacité ${targetOpacity} (${duration}s)`);
-
-      gsap.to(shootingStarsContainer, {
-        opacity: targetOpacity,
-        duration: duration,
-        ease: "power1.inOut",
-        overwrite: true
-      });
-    }
-
-    // Synchroniser les étoiles astronomiques
-    const astronomicalStars = document.querySelectorAll('.star');
-    if (astronomicalStars.length > 0) {
-      const visibility = mode === 'night' ? 1 : (mode === 'dusk' || mode === 'dawn' ? 0.3 : 0);
-      console.log(`🌌 SYNCHRONISATION ${astronomicalStars.length} étoiles astronomiques vers opacité ${visibility} (${duration}s)`);
-
-      astronomicalStars.forEach((star) => {
-        gsap.to(star as HTMLElement, {
-          opacity: visibility,
-          duration: duration,
-          ease: "power1.inOut",
-          overwrite: true
-        });
-      });
-    }
-  };
 
   // 🔧 CISCO: Changement de mode avec CROSS FADE progressif TOUJOURS
   const setBackgroundMode = (mode: BackgroundMode) => {
-    console.log(`🎨 Changement de mode vers: ${mode} depuis ${currentMode}`);
+    console.log(`🎨 Changement de mode vers: ${mode} depuis ${currentModeRef.current}`);
 
     // Si c'est le même mode, ne rien faire
-    if (mode === currentMode) {
+    if (mode === currentModeRef.current) {
       console.log('🔄 Mode identique, pas de transition');
       return;
     }
 
-    // 🔧 CISCO: Les nuages seront synchronisés DANS les timelines GSAP
-    console.log(`🌤️ Préparation transition nuages pour mode: ${mode}`);
-
     // Transition avec pont si modes adjacents
-    const transitionKey = `${currentMode}-${mode}` as keyof typeof TRANSITION_MODES;
+    const transitionKey = `${currentModeRef.current}-${mode}` as keyof typeof TRANSITION_MODES;
     if (TRANSITION_MODES[transitionKey]) {
       console.log(`🌉 Utilisation du pont de transition: ${transitionKey}`);
       // Appliquer d'abord la couleur de transition
@@ -344,7 +172,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
     const targetColors = getColorsForMode(targetMode);
     
     setIsTransitioning(true);
-    setTransitionPhase('fade-in');
     
     // Créer le dégradé final avec transition ultra douce
     let finalGradient;
@@ -365,7 +192,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
     timelineRef.current = gsap.timeline({
       onComplete: () => {
         setIsTransitioning(false);
-        setCurrentMode(targetMode); // ✅ CORRECTION: Mettre à jour le mode seulement à la fin
+        currentModeRef.current = targetMode;
         console.log(`✨ Transition douce vers ${targetMode} terminée !`);
       }
     });
@@ -389,15 +216,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
       }, 0);
     }
 
-    // 🔧 CISCO: CROSS FADE DES NUAGES - SYNCHRONISÉE DANS LA TIMELINE
-    timelineRef.current.call(() => {
-      applyCloudTransition(targetMode, transitionDuration);
-    }, [], 0.1); // 🔧 CISCO: Délai de 100ms pour synchronisation parfaite
-
-    // 🔧 CISCO: SYNCHRONISATION DES ÉTOILES - MÊME TIMING QUE LES NUAGES
-    timelineRef.current.call(() => {
-      applyStarsTransition(targetMode, transitionDuration);
-    }, [], 0.1); // 🔧 CISCO: Même délai pour synchronisation parfaite
   };
 
   // 🔧 NOUVELLE FONCTION: Transition avec pont intermédiaire
@@ -408,7 +226,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
     const targetColors = getColorsForMode(targetMode);
     
     setIsTransitioning(true);
-    setTransitionPhase('fade-in');
     
     // Créer le dégradé de pont
     const bridgeGradient = `linear-gradient(to top, ${bridgeColors.primary} 50%, ${bridgeColors.secondary} 75%, ${bridgeColors.tertiary} 100%)`;
@@ -431,7 +248,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
 
     timelineRef.current = gsap.timeline({
       onComplete: () => {
-        setCurrentMode(targetMode);
+        currentModeRef.current = targetMode;
         setIsTransitioning(false);
         console.log(`✨ Transition avec pont vers ${targetMode} terminée !`);
       }
@@ -496,26 +313,12 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
     }
   };
 
-  // 🔧 FONCTION SIMPLIFIÉE: Calculer les effets sur les nuages (optimisés)
-  const getCloudTintForMode = (mode: BackgroundMode): string => {
-    switch (mode) {
-      case 'midday': return 'brightness(1.3) saturate(0.8) contrast(0.95) hue-rotate(0deg)'; // CISCO: Nuages très blancs/lumineux
-      case 'morning': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
-      case 'afternoon': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
-      case 'dawn': return 'brightness(0.8) contrast(1.1) saturate(1.1) hue-rotate(5deg)';
-      case 'sunrise': return 'brightness(0.9) contrast(1.1) saturate(1.2) hue-rotate(8deg)';
-      case 'sunset': return 'brightness(1.0) contrast(1.1) saturate(1.3) hue-rotate(15deg)'; // CISCO: Nuages dorés/orangés, pas noirs
-      case 'dusk': return 'brightness(0.6) contrast(1.15) saturate(1.2) hue-rotate(8deg)';
-      case 'night': return 'brightness(0.3) contrast(1.2) saturate(0.7) hue-rotate(-10deg)';
-      default: return 'brightness(1.0) saturate(1.0) contrast(1.0)';
-    }
-  };
 
   // 🔧 FONCTION PRINCIPALE: Transition progressive fluide entre modes
   const updateBackground = (mode?: BackgroundMode) => {
     if (!gradientRef.current) return;
 
-    const targetMode = mode || currentMode;
+    const targetMode = mode || skyMode as BackgroundMode;
     const colors = getColorsForMode(targetMode);
     
     // 🎬 INDICATEUR DE TRANSITION
@@ -565,15 +368,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
       }, 0);
     }
 
-    // 🔧 CISCO: CROSS FADE DES NUAGES - SYNCHRONISÉE DANS LA TIMELINE
-    timelineRef.current.call(() => {
-      applyCloudTransition(targetMode, transitionDuration);
-    }, [], 0.1); // 🔧 CISCO: Délai de 100ms pour synchronisation parfaite
-
-    // 🔧 CISCO: SYNCHRONISATION DES ÉTOILES - MÊME TIMING QUE LES NUAGES
-    timelineRef.current.call(() => {
-      applyStarsTransition(targetMode, transitionDuration);
-    }, [], 0.1); // 🔧 CISCO: Même délai pour synchronisation parfaite
   };
 
   // Animation de zoom du paysage
@@ -588,9 +382,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
     zoomTimelineRef.current.to(landscapeRef.current, { scale: 1.0, duration: 35, ease: "power2.out" });
     zoomTimelineRef.current.to(landscapeRef.current, { scale: 1.0, duration: 10, ease: "none" });
   };
-
-  // 🔧 FONCTION PUBLIQUE: Permet de changer le mode depuis l'extérieur
-  (window as any).setBackgroundMode = setBackgroundMode;
 
   // 🌅 CISCO: Fonction publique pour déclencher l'animation de lever de soleil
   const triggerSunriseAnimation = () => {
@@ -706,21 +497,10 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
   (window as any).triggerDuskAnimation = triggerDuskAnimation; // CISCO: Animation crépuscule (soleil derrière horizon)
   (window as any).triggerNightAnimation = triggerNightAnimation; // CISCO: Animation nuit profonde (soleil très bas)
 
-  // 🔧 CISCO: DÉSACTIVÉ - Re-synchronisation automatique pour éviter les changements non désirés
-  // useEffect(() => {
-  //   if (locationReady) {
-  //     const newAutoMode = getAutoModeFromCurrentTime();
-  //     if (newAutoMode !== currentMode) {
-  //       console.log(`🌍 Géolocalisation disponible - Mise à jour automatique du mode: ${currentMode} → ${newAutoMode}`);
-  //       setCurrentMode(newAutoMode);
-  //     }
-  //   }
-  // }, [locationReady, currentMode]);
-
   // Initialisation une seule fois
   useEffect(() => {
     if (gradientRef.current) {
-      const initialColors = getColorsForMode(currentMode);
+      const initialColors = getColorsForMode(skyMode as BackgroundMode);
       const initialGradient = `linear-gradient(to top, ${initialColors.primary} 30%, ${initialColors.secondary} 60%, ${initialColors.tertiary} 100%)`;
       gsap.set(gradientRef.current, {
         backgroundImage: initialGradient
@@ -730,39 +510,16 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
     createLandscapeZoomAnimation();
     updateBackground();
 
-    // 🔧 NOUVEAU: Message de confirmation de la détection automatique
-    console.log(`
-🎯 DÉTECTION AUTOMATIQUE ACTIVÉE !
-
-✅ Mode détecté: ${currentMode}
-🕐 Heure actuelle: ${new Date().toLocaleTimeString('fr-FR')}
-🌍 Géolocalisation: ${locationReady ? 'Activée (calculs précis)' : 'En attente (calculs standards)'}
-
-L'utilisateur peut toujours changer le mode manuellement via le panneau de contrôle.
-    `);
-
     return () => {
       if (timelineRef.current) timelineRef.current.kill();
       if (zoomTimelineRef.current) zoomTimelineRef.current.kill();
     };
   }, []);
 
-  // 🔧 CISCO: Notifier le mode initial au montage - AVEC currentMode dans les dépendances
-  useEffect(() => {
-    if (onModeChangeRef.current) {
-      console.log(`🎵 DynamicBackground: Notification du mode initial: ${currentMode}`);
-      onModeChangeRef.current(currentMode);
-    }
-  }, [currentMode]); // 🔧 CISCO: Inclure currentMode pour éviter les valeurs obsolètes
-
   // Réagir aux changements de mode
   useEffect(() => {
-    updateBackground();
-    // 🔧 NOUVEAU: Notifier le parent du changement de mode
-    if (onModeChangeRef.current) {
-      onModeChangeRef.current(currentMode);
-    }
-  }, [currentMode]); // 🔧 CISCO: Seulement currentMode comme dépendance
+    setBackgroundMode(skyMode as BackgroundMode);
+  }, [skyMode]);
 
   return (
     <div
@@ -784,8 +541,8 @@ L'utilisateur peut toujours changer le mode manuellement via le panneau de contr
       />
 
       {/* Couches avec nuages réduits - Mode passé aux étoiles */}
-      <AstronomicalLayer skyMode={currentMode} />
-      <DiurnalLayer />
+      <AstronomicalLayer skyMode={skyMode as BackgroundMode} />
+      <DiurnalLayer skyMode={skyMode as BackgroundMode} />
 
       {/* 🌅 CISCO: Animation de lever de soleil - Disponible sur TOUS les backgrounds */}
       <SunriseAnimation
@@ -817,10 +574,10 @@ L'utilisateur peut toujours changer le mode manuellement via le panneau de contr
         <div className="fixed top-4 right-4 bg-[#0D9488]/90 text-white px-4 py-2 rounded-lg backdrop-blur-sm z-50 shadow-lg border border-[#A550F5]/30">
           <div className="flex items-center gap-2">
             <div className="animate-pulse">
-              {transitionPhase === 'fade-out' ? '�' : '✨'}
+              ✨
             </div>
             <span className="text-sm font-medium">
-              {transitionPhase === 'fade-out' ? 'Fade-out...' : 'Fade-in...'}
+              Transition...
             </span>
           </div>
         </div>

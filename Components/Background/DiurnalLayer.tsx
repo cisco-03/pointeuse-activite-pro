@@ -15,10 +15,26 @@ interface Cloud {
 
 // Interface pour les props du composant
 interface DiurnalLayerProps {
-  // Pas de props pour le moment
+  skyMode: string;
 }
 
-const DiurnalLayer: React.FC<DiurnalLayerProps> = () => {
+// 🔧 FONCTION SIMPLIFIÉE: Calculer les effets sur les nuages (optimisés)
+const getCloudTintForMode = (mode: string): string => {
+  switch (mode) {
+    case 'midday': return 'brightness(1.3) saturate(0.8) contrast(0.95) hue-rotate(0deg)'; // CISCO: Nuages très blancs/lumineux
+    case 'morning': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
+    case 'afternoon': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
+    case 'dawn': return 'brightness(0.8) contrast(1.1) saturate(1.1) hue-rotate(5deg)';
+    case 'sunrise': return 'brightness(0.9) contrast(1.1) saturate(1.2) hue-rotate(8deg)';
+    case 'sunset': return 'brightness(1.0) contrast(1.1) saturate(1.3) hue-rotate(15deg)'; // CISCO: Nuages dorés/orangés, pas noirs
+    case 'dusk': return 'brightness(0.6) contrast(1.15) saturate(1.2) hue-rotate(8deg)';
+    case 'night': return 'brightness(0.3) contrast(1.2) saturate(0.7) hue-rotate(-10deg)';
+    default: return 'brightness(1.0) saturate(1.0) contrast(1.0)';
+  }
+};
+
+
+const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fonction pour générer les nuages avec physique améliorée - VERSION ULTRA ALÉATOIRE
@@ -239,6 +255,28 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = () => {
       }
     };
   }, []);
+
+  // 🔧 NOUVEAU: Réagir aux changements de mode pour teinter les nuages
+  useEffect(() => {
+      if (!containerRef.current) return;
+
+      const cloudTint = getCloudTintForMode(skyMode);
+      const cloudElements = containerRef.current.querySelectorAll('[data-cloud-element]');
+
+      console.log(`🌤️ Application de la teinte pour le mode ${skyMode}: ${cloudTint}`);
+
+      cloudElements.forEach((cloudElement) => {
+          const img = cloudElement.querySelector('img');
+          if (img) {
+              gsap.to(img, {
+                  filter: cloudTint,
+                  duration: 15.0, // Durée synchronisée avec le fond
+                  ease: "power1.inOut",
+              });
+          }
+      });
+  }, [skyMode]);
+
 
   return (
     <div
