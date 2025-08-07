@@ -2,6 +2,8 @@ import React from 'react';
 import TimeSimulator from './TimeSimulator';
 import AudioControlPanel from '../Audio/AudioControlPanel';
 
+type Lang = 'fr' | 'en';
+
 interface ControlButtonsWrapperProps {
   // Props pour TimeSimulator
   onTimeChange: (simulatedTime: Date) => void;
@@ -12,6 +14,9 @@ interface ControlButtonsWrapperProps {
   audioVolume: number;
   onToggleEnabled: (enabled: boolean) => void;
   onVolumeChange: (volume: number) => void;
+
+  // Langue
+  lang?: Lang;
 }
 
 const ControlButtonsWrapper: React.FC<ControlButtonsWrapperProps> = ({
@@ -20,7 +25,8 @@ const ControlButtonsWrapper: React.FC<ControlButtonsWrapperProps> = ({
   audioEnabled,
   audioVolume,
   onToggleEnabled,
-  onVolumeChange
+  onVolumeChange,
+  lang = 'fr'
 }) => {
   return (
     <>
@@ -28,9 +34,10 @@ const ControlButtonsWrapper: React.FC<ControlButtonsWrapperProps> = ({
       <div className="fixed bottom-4 left-4 right-4 flex justify-between items-end z-40 pointer-events-none">
         {/* Bouton contrôle arrière-plan à gauche */}
         <div className="pointer-events-auto">
-          <TimeSimulator 
+          <TimeSimulator
             onTimeChange={onTimeChange}
             currentSimulatedTime={currentSimulatedTime}
+            lang={lang}
           />
         </div>
         
@@ -41,6 +48,7 @@ const ControlButtonsWrapper: React.FC<ControlButtonsWrapperProps> = ({
             volume={audioVolume}
             onToggleEnabled={onToggleEnabled}
             onVolumeChange={onVolumeChange}
+            lang={lang}
           />
         </div>
       </div>

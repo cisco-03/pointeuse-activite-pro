@@ -241,10 +241,10 @@ const ShootingStars: React.FC<ShootingStarsProps> = ({ skyMode }) => {
 
     console.log(`🌠 Transition progressive des étoiles filantes vers opacité ${targetOpacity} (mode: ${skyMode})`);
 
-    // Transition progressive avec GSAP (8 secondes comme le background)
+    // CISCO: Transition progressive synchronisée (15 secondes comme le background)
     gsap.to(containerRef.current, {
       opacity: targetOpacity,
-      duration: 8.0,
+      duration: 15.0, // CISCO: Harmonisation à 15 secondes
       ease: "power1.inOut",
       overwrite: true
     });

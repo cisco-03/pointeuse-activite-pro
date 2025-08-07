@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { gsap } from 'gsap';
 
 // Types pour les différents types d'ambiances sonores - Basés sur les fichiers réels
 type AmbientSoundType = 
@@ -28,100 +29,83 @@ interface AmbientSoundManagerProps {
   volume?: number; // 0 à 1
 }
 
-// 🔧 CISCO: Configuration avancée avec support du mixage audio simultané
+// 🔧 CISCO: Configuration audio SYNCHRONISÉE avec transitions visuelles (15-20s)
 const SOUND_CONFIG: Record<string, {
   sound: AmbientSoundType;
   volume: number;
   folder: string;
   isShort?: boolean; // Pour les fichiers courts qui doivent être en boucle
-  fadeInDuration?: number; // Durée du fondu d'entrée en ms
-  fadeOutDuration?: number; // Durée du fondu de sortie en ms
-  alternatives?: AmbientSoundType[]; // Fichiers alternatifs pour variété
-  rotationInterval?: number; // Intervalle de rotation des alternatives en ms
-  // 🔧 NOUVEAU: Support du mixage simultané
-  simultaneousSounds?: AmbientSoundType[]; // Sons à jouer en même temps
-  mixingMode?: 'rotation' | 'simultaneous'; // Mode de lecture
+  fadeInDuration: number; // Durée du fondu d'entrée en ms - SYNCHRONISÉ avec visuel
+  fadeOutDuration: number; // Durée du fondu de sortie en ms - SYNCHRONISÉ avec visuel
+  visualTransitionDuration?: number; // Durée de la transition visuelle correspondante
 }> = {
   night: {
     sound: 'night-atmosphere-with-crickets-374652',
     volume: 0.6,
     folder: 'nuit-profonde',
-    fadeInDuration: 800,
-    fadeOutDuration: 1000,
-    // 🔧 CISCO: Mixage simultané pour la nuit (criquets + hibou)
-    simultaneousSounds: ['hibou-molkom'],
-    mixingMode: 'simultaneous', // Jouer les deux en même temps
-    rotationInterval: 60000 // Rotation du hibou toutes les 60 secondes
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   },
   dusk: {
     sound: 'merle-blackbird',
     volume: 0.4,
     folder: 'crepuscule',
     isShort: true,
-    fadeInDuration: 600,
-    fadeOutDuration: 800,
-    // 🔧 CISCO: Mixage simultané pour le crépuscule (merle + grillon unique)
-    simultaneousSounds: ['cricket-single'],
-    mixingMode: 'simultaneous',
-    rotationInterval: 70000 // Variation toutes les 70 secondes
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   },
-  dawn: { 
-    sound: 'village_morning_birds_roosters', 
-    volume: 0.5, 
+  dawn: {
+    sound: 'village_morning_birds_roosters',
+    volume: 0.5,
     folder: 'aube',
-    fadeInDuration: 600,
-    fadeOutDuration: 800
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   },
-  sunrise: { 
-    sound: 'blackbird', 
-    volume: 0.6, 
+  sunrise: {
+    sound: 'blackbird',
+    volume: 0.6,
     folder: 'lever-soleil',
     isShort: true,
-    fadeInDuration: 500,
-    fadeOutDuration: 700
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   },
   morning: {
     sound: 'morning-birdsong',
     volume: 0.7,
     folder: 'matin',
-    fadeInDuration: 500,
-    fadeOutDuration: 700,
-    // 🔧 CISCO: Mixage simultané pour le matin (chants d'oiseaux + bourdonnement d'insectes)
-    simultaneousSounds: ['insect_bee_fly'],
-    mixingMode: 'simultaneous',
-    rotationInterval: 90000 // Variation toutes les 90 secondes
+    fadeInDuration: 6000, // 🔧 CISCO: 6 secondes pour le matin (transition plus longue)
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 20000 // 20 secondes visuel pour le matin
   },
   midday: {
     sound: 'forest_cicada',
     volume: 0.3,
     folder: 'midi',
     isShort: true,
-    fadeInDuration: 600,
-    fadeOutDuration: 800
-    // Pas de mixage (1 seul fichier)
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   },
   afternoon: {
     sound: 'summer-insects-243572',
     volume: 0.4,
     folder: 'apres-midi',
-    fadeInDuration: 600,
-    fadeOutDuration: 800,
-    // 🔧 CISCO: Mixage simultané pour l'après-midi (insectes d'été + chants d'oiseaux)
-    simultaneousSounds: ['birds-singing'],
-    mixingMode: 'simultaneous',
-    rotationInterval: 75000 // Variation toutes les 75 secondes
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   },
   sunset: {
     sound: 'grillon-drome',
     volume: 0.4,
     folder: 'coucher-soleil',
     isShort: true,
-    fadeInDuration: 700,
-    fadeOutDuration: 900,
-    // 🔧 CISCO: Mixage simultané pour le coucher (grillons + pépiements d'oiseaux)
-    simultaneousSounds: ['bird-chirp'],
-    mixingMode: 'simultaneous',
-    rotationInterval: 80000 // Variation toutes les 80 secondes
+    fadeInDuration: 5000, // 🔧 CISCO: 5 secondes pour synchronisation
+    fadeOutDuration: 2000, // 🔧 CISCO: 2 secondes pour arrêt rapide
+    visualTransitionDuration: 15000 // 15 secondes visuel
   }
 };
 
@@ -189,196 +173,213 @@ const AmbientSoundManager: React.FC<AmbientSoundManagerProps> = ({
   enabled = false, // 🔧 CISCO: Audio désactivé par défaut - activation manuelle
   volume = 0.5
 }) => {
-  // 🔧 CISCO: Support du mixage audio simultané
-  const audioRef = useRef<HTMLAudioElement | null>(null); // Son principal
-  const simultaneousAudioRefs = useRef<HTMLAudioElement[]>([]); // Sons simultanés
+  // 🔧 CISCO: SYSTÈME AUDIO EXCLUSIF - UN SEUL MODE ACTIF
+  const audioRef = useRef<HTMLAudioElement | null>(null); // Son principal UNIQUE
   const [currentSound, setCurrentSound] = useState<AmbientSoundType>('none');
-  const [currentSimultaneousSounds, setCurrentSimultaneousSounds] = useState<AmbientSoundType[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [currentSoundIndex, setCurrentSoundIndex] = useState(0); // Pour la rotation des alternatives
+  const [activeModeAudio, setActiveModeAudio] = useState<string>('none'); // 🔧 CISCO: Mode audio actuel
 
-  // 🔧 Fonction pour sélectionner un son en rotation séquentielle pour plus de variété
-  const selectRandomSound = (config: typeof SOUND_CONFIG[string]): AmbientSoundType => {
-    const allSounds = [config.sound, ...(config.alternatives || [])];
-    
-    // Rotation séquentielle pour assurer que tous les sons sont entendus
-    const selectedSound = allSounds[currentSoundIndex % allSounds.length];
-    setCurrentSoundIndex(prev => (prev + 1) % allSounds.length);
-    
-    return selectedSound;
-  };
+  // 🔧 CISCO: NOUVEAU - AbortController pour annuler les opérations async
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // 🔧 Fonction pour programmer la rotation automatique des sons
-  const scheduleRotation = (config: typeof SOUND_CONFIG[string]) => {
-    // Nettoyer l'ancien timer
-    if (rotationTimeoutRef.current) {
-      clearTimeout(rotationTimeoutRef.current);
-    }
+  // 🔧 CISCO: NOUVEAU - Mutex pour empêcher les transitions simultanées
+  const transitionMutexRef = useRef<boolean>(false);
 
-    // Programmer la prochaine rotation si des alternatives existent
-    if (config.alternatives && config.alternatives.length > 0 && config.rotationInterval) {
-      rotationTimeoutRef.current = setTimeout(() => {
-        if (enabled && isPlaying) {
-          changeSoundTo(config); // Changera automatiquement au son suivant
-        }
-      }, config.rotationInterval);
-    }
-  };
-
-  // 🔧 CISCO: Nouvelle fonction pour gérer le mixage simultané
-  const startSimultaneousSounds = async (sounds: AmbientSoundType[], folder: string, baseVolume: number) => {
-    console.log(`🎼 Démarrage de ${sounds.length} sons simultanés:`, sounds);
-
-    // Nettoyer les anciens sons simultanés
-    simultaneousAudioRefs.current.forEach(audio => {
-      if (audio) {
-        audio.pause();
-        audio.volume = 0;
-      }
-    });
-    simultaneousAudioRefs.current = [];
-
-    // Créer et démarrer chaque son simultané
-    for (const soundType of sounds) {
-      try {
-        const soundUrl = getSoundUrl(soundType, folder);
-        const audio = new Audio(soundUrl);
-        audio.loop = true;
-        audio.volume = 0;
-
-        // Attendre que le son soit prêt
-        await new Promise<void>((resolve, reject) => {
-          audio.addEventListener('canplaythrough', () => resolve(), { once: true });
-          audio.addEventListener('error', reject, { once: true });
-          audio.load();
-        });
-
-        // Démarrer le son et faire un fade-in
-        await audio.play();
-        simultaneousAudioRefs.current.push(audio);
-
-        // 🔧 CISCO: Fade-in progressif avec normalisation audio
-        const normalizedVolume = getNormalizedVolume(soundType, baseVolume * volume * 0.7);
-        await performFadeIn(audio, normalizedVolume, 2000);
-
-        console.log(`✅ Son simultané démarré: ${soundType}`);
-      } catch (error) {
-        console.warn(`⚠️ Erreur lors du démarrage du son simultané ${soundType}:`, error);
-      }
-    }
-
-    setCurrentSimultaneousSounds(sounds);
-  };
-
-  // 🔧 Fonction améliorée pour changer le son avec support du mixage simultané
-  const changeSoundTo = async (soundConfig: typeof SOUND_CONFIG[string]) => {
+  // 🔧 CISCO: FONCTION UTILITAIRE - Vérifier si enabled ou annuler
+  const checkEnabledOrAbort = (): boolean => {
     if (!enabled) {
-      await fadeOutAndStop();
+      console.log('🔇 CISCO: Audio désactivé - Opération annulée');
+      return false;
+    }
+    if (abortControllerRef.current?.signal.aborted) {
+      console.log('🛑 CISCO: Opération annulée par AbortController');
+      return false;
+    }
+    return true;
+  };
+
+  // 🔧 CISCO: FONCTION SYNCHRONISATION - Calculer délai pour synchronisation avec visuel
+  const calculateSyncDelay = (config: typeof SOUND_CONFIG[string]): number => {
+    // Démarrer le fade in audio après 20% de la transition visuelle pour une meilleure synchronisation
+    const visualDuration = config.visualTransitionDuration || 15000;
+    const syncDelay = Math.floor(visualDuration * 0.2); // 20% de la transition visuelle
+    return Math.min(syncDelay, 3000); // Maximum 3 secondes de délai
+  };
+
+  // 🔧 CISCO: NETTOYAGE AMÉLIORÉ - Seulement notre instance audio
+  useEffect(() => {
+    console.log('🧹 CISCO: Initialisation audio manager');
+
+    // Créer un nouveau AbortController
+    abortControllerRef.current = new AbortController();
+
+    // Reset complet de l'état
+    setCurrentSound('none');
+    setIsPlaying(false);
+    setIsTransitioning(false);
+    setActiveModeAudio('none');
+    transitionMutexRef.current = false;
+
+    console.log('🧹 CISCO: Audio manager initialisé');
+  }, []); // Une seule fois au montage
+
+  // 🔧 CISCO: État pour tracker le mode actuel et éviter les changements redondants
+  const [currentMode, setCurrentMode] = useState<string>(skyMode);
+
+  // 🔧 CISCO: État pour ignorer temporairement les changements automatiques
+  const [manualModeActive, setManualModeActive] = useState<boolean>(false);
+  const manualModeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 🔧 CISCO: Fonction simplifiée - Un seul son par mode (pas d'alternatives)
+  const selectRandomSound = (config: typeof SOUND_CONFIG[string]): AmbientSoundType => {
+    return config.sound; // 🔧 CISCO: Mode exclusif - un seul son par mode
+  };
+
+  // 🔧 CISCO: FONCTION SUPPRIMÉE - Plus de mixage simultané (mode exclusif)
+
+  // 🔧 CISCO: ARRÊT SIMPLE ET EFFICACE
+  const stopCurrentSound = useCallback(() => {
+    console.log('🛑 CISCO: Arrêt immédiat du son actuel');
+
+    // Arrêter TOUS les éléments audio de la page pour être sûr
+    const allAudioElements = document.querySelectorAll('audio');
+    allAudioElements.forEach(audio => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 0;
+    });
+
+    // Nettoyer notre référence
+    if (audioRef.current) {
+      audioRef.current = null;
+    }
+
+    // Reset de tous les états
+    setIsPlaying(false);
+    setCurrentSound('none');
+    setActiveModeAudio('none');
+    setIsTransitioning(false);
+
+    console.log('🛑 CISCO: Arrêt immédiat terminé');
+  }, []);
+
+  // 🔧 CISCO: EFFET ACTIVATION/DÉSACTIVATION SIMPLE
+  useEffect(() => {
+    console.log(`🎵 CISCO: Audio ${enabled ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
+
+    if (!enabled) {
+      // Si désactivé, arrêter immédiatement tous les sons
+      stopCurrentSound();
+    }
+  }, [enabled]); // 🔧 CISCO: Seulement enabled pour éviter les erreurs
+
+  // 🔧 CISCO: Fonction de changement immédiat de mode audio avec priorité absolue
+  const handleImmediateModeChange = async (newMode: string) => {
+    console.log(`🎵 AmbientSoundManager: Changement FORCÉ vers ${newMode} depuis ${currentMode}`);
+
+    // 🔧 CISCO: Activer le mode manuel (ignore les changements automatiques)
+    setManualModeActive(true);
+
+    // Nettoyer l'ancien timeout
+    if (manualModeTimeoutRef.current) {
+      clearTimeout(manualModeTimeoutRef.current);
+    }
+
+    // Désactiver le mode manuel après 3 secondes
+    manualModeTimeoutRef.current = setTimeout(() => {
+      console.log('🔄 Mode manuel désactivé, retour à l\'auto-détection');
+      setManualModeActive(false);
+    }, 3000);
+
+    // Éviter les changements redondants
+    if (newMode === currentMode && !manualModeActive) {
+      console.log('🔄 Mode identique, pas de changement audio');
       return;
     }
 
-    // 🔧 CISCO: Vérifier si on doit utiliser le mixage simultané
-    if (soundConfig.mixingMode === 'simultaneous' && soundConfig.simultaneousSounds) {
-      console.log(`🎼 Mode mixage simultané activé pour ${soundConfig.sound}`);
+    setCurrentMode(newMode);
 
-      // Démarrer le son principal
-      const selectedSound = selectRandomSound(soundConfig);
-      const targetVolume = soundConfig.volume;
-
-      // 🔧 CISCO: Cross-fade vers le son principal avec normalisation
-      const normalizedMainVolume = getNormalizedVolume(selectedSound, targetVolume);
-      await crossFadeToNewSound(selectedSound, normalizedMainVolume, soundConfig);
-
-      // Démarrer les sons simultanés
-      await startSimultaneousSounds(soundConfig.simultaneousSounds, soundConfig.folder, soundConfig.volume);
-
-      // Programmer la rotation (pour varier les sons simultanés)
-      scheduleRotation(soundConfig);
+    if (!enabled) {
+      console.log('🔇 Audio désactivé, pas de changement de son');
       return;
     }
 
-    // Mode normal (un seul son)
+    const config = SOUND_CONFIG[newMode] || { sound: 'none' as AmbientSoundType, volume: 0, folder: '' };
+    console.log(`🎵 Configuration audio FORCÉE pour ${newMode}:`, config);
+
+    // Changement immédiat sans attendre les useEffect
+    await changeSoundTo(config);
+  };
+
+  // 🔧 CISCO: FONCTION SIMPLE - Arrêt immédiat puis démarrage
+  const changeSoundTo = async (soundConfig: typeof SOUND_CONFIG[string]) => {
+    // Si audio désactivé, arrêter tout
+    if (!enabled) {
+      stopCurrentSound();
+      return;
+    }
+
+    console.log(`🎵 CISCO: Changement SIMPLE vers ${soundConfig.sound}`);
+
     const selectedSound = selectRandomSound(soundConfig);
     const targetVolume = soundConfig.volume;
-
-    // 🔧 CISCO: Normalisation du volume pour le mode normal
     const normalizedVolume = getNormalizedVolume(selectedSound, targetVolume);
 
-    // Si c'est le même son, ajuster seulement le volume
-    if (currentSound === selectedSound && audioRef.current && !isTransitioning) {
-      smoothVolumeTransition(normalizedVolume * volume, 1500);
-      return;
+    // ÉTAPE 1: ARRÊT IMMÉDIAT de tout son existant
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.volume = 0;
+      audioRef.current = null;
     }
 
-    // Si on est déjà en transition, attendre qu'elle se termine
-    if (isTransitioning) {
-      console.log('🎵 Transition déjà en cours, attente...');
-      return;
-    }
+    // ÉTAPE 2: Attente courte pour garantir l'arrêt
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Cross-fade vers le nouveau son avec normalisation
-    await crossFadeToNewSound(selectedSound, normalizedVolume, soundConfig);
-
-    // Programmer la prochaine rotation
-    scheduleRotation(soundConfig);
-  };
-
-  // 🔧 NOUVELLE FONCTION: Cross-fade fluide entre deux sons avec durées configurables
-  const crossFadeToNewSound = async (newSoundType: AmbientSoundType, targetVolume: number, config: typeof SOUND_CONFIG[string]) => {
-    setIsTransitioning(true);
+    // ÉTAPE 3: Démarrage du nouveau son (seulement si toujours enabled)
+    if (!enabled) return;
 
     try {
-      // Obtenir l'URL avec le bon dossier et la configuration
-      const soundUrl = getSoundUrl(newSoundType, config.folder);
-      
-      // Étape 1: Charger le nouveau son en silence
+      const soundUrl = getSoundUrl(selectedSound, soundConfig.folder);
       const newAudio = new Audio(soundUrl);
-      newAudio.loop = true; // Tous les sons sont en boucle
+      newAudio.loop = true;
       newAudio.volume = 0;
 
-      // Attendre que le nouveau son soit prêt
-      await new Promise<void>((resolve, reject) => {
-        newAudio.addEventListener('canplaythrough', () => resolve(), { once: true });
-        newAudio.addEventListener('error', reject, { once: true });
-        newAudio.load();
-      });
-
-      // Étape 2: Démarrer le nouveau son en silence
       await newAudio.play();
-
-      // Étape 3: Cross-fade (fondu croisé) avec durées configurables
-      if (audioRef.current && isPlaying) {
-        // Fade out l'ancien et fade in le nouveau simultanément
-        await performCrossFade(audioRef.current, newAudio, targetVolume * volume, config.fadeInDuration || 3000);
-      } else {
-        // Pas d'ancien son, juste fade in le nouveau
-        await performFadeIn(newAudio, targetVolume * volume, config.fadeInDuration || 2000);
-      }
-
-      // Étape 4: Remplacer l'ancienne référence
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
       audioRef.current = newAudio;
-      setCurrentSound(newSoundType);
+
+      // Fade in simple avec setTimeout
+      const targetVol = normalizedVolume * volume;
+      const steps = 20;
+      const stepDuration = 100; // 2 secondes total
+      const volumeStep = targetVol / steps;
+
+      for (let i = 0; i <= steps; i++) {
+        setTimeout(() => {
+          if (audioRef.current === newAudio) {
+            newAudio.volume = volumeStep * i;
+          }
+        }, i * stepDuration);
+      }
+
+      setCurrentSound(selectedSound);
       setIsPlaying(true);
+      setActiveModeAudio(soundConfig.folder || 'unknown');
 
-      console.log(`🎵 Cross-fade vers ${newSoundType} terminé`);
-
+      console.log(`✅ CISCO: Son ${selectedSound} démarré`);
     } catch (error) {
-      console.warn(`⚠️ Erreur lors du cross-fade vers ${newSoundType}:`, error);
-      setCurrentSound('none');
+      console.error('❌ CISCO: Erreur audio:', error);
       setIsPlaying(false);
-    } finally {
-      setIsTransitioning(false);
+      setCurrentSound('none');
     }
   };
 
-  // 🔧 NOUVELLE FONCTION: Transition de volume ultra fluide
+  // 🔧 CISCO: FONCTION SUPPRIMÉE - Remplacée par système simple
+
+  // 🔧 CISCO: Transition de volume avec vérifications enabled
   const smoothVolumeTransition = (targetVolume: number, duration: number = 2000) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !checkEnabledOrAbort()) return;
 
     const audio = audioRef.current;
     const startVolume = audio.volume;
@@ -386,12 +387,17 @@ const AmbientSoundManager: React.FC<AmbientSoundManagerProps> = ({
     const startTime = Date.now();
 
     const updateVolume = () => {
+      // Vérifier si toujours enabled et audio valide
+      if (!checkEnabledOrAbort() || !audioRef.current || audioRef.current !== audio) {
+        return; // Arrêter la transition si disabled ou audio changé
+      }
+
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Easing function pour une transition plus naturelle
       const easedProgress = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      
+
       audio.volume = startVolume + (volumeDifference * easedProgress);
 
       if (progress < 1) {
@@ -402,49 +408,62 @@ const AmbientSoundManager: React.FC<AmbientSoundManagerProps> = ({
     requestAnimationFrame(updateVolume);
   };
 
-  // 🔧 NOUVELLE FONCTION: Cross-fade entre deux sons avec durée personnalisée
-  const performCrossFade = (oldAudio: HTMLAudioElement, newAudio: HTMLAudioElement, targetVolume: number, duration: number = 3000): Promise<void> => {
-    return new Promise((resolve) => {
+  // 🔧 CISCO: FADE OUT avec vérifications enabled et AbortController
+  const performFadeOut = (audio: HTMLAudioElement, duration: number = 1000): Promise<void> => {
+    return new Promise((resolve, reject) => {
       const startTime = Date.now();
-      const initialOldVolume = oldAudio.volume;
+      const initialVolume = audio.volume;
+      const signal = abortControllerRef.current?.signal;
 
-      const crossFadeStep = () => {
+      const fadeOutStep = () => {
+        // Vérifier si l'opération a été annulée
+        if (signal?.aborted || !checkEnabledOrAbort()) {
+          audio.volume = 0;
+          reject(new Error('Fade out annulé'));
+          return;
+        }
+
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
-        // Easing pour plus de naturel
-        const easedProgress = 1 - Math.pow(1 - progress, 2); // ease-out quadratic
 
-        // Fade out l'ancien son
-        oldAudio.volume = initialOldVolume * (1 - easedProgress);
-        
-        // Fade in le nouveau son
-        newAudio.volume = targetVolume * easedProgress;
+        // Easing doux pour fade out naturel
+        const easedProgress = Math.pow(progress, 1.5); // ease-in plus doux
 
-        if (progress < 1) {
-          requestAnimationFrame(crossFadeStep);
-        } else {
-          oldAudio.pause();
+        audio.volume = initialVolume * (1 - easedProgress);
+
+        if (progress >= 1) {
+          audio.volume = 0;
           resolve();
+        } else {
+          requestAnimationFrame(fadeOutStep);
         }
       };
 
-      requestAnimationFrame(crossFadeStep);
+      requestAnimationFrame(fadeOutStep);
     });
   };
 
-  // 🔧 NOUVELLE FONCTION: Fade in fluide avec durée personnalisée
+  // 🔧 CISCO: FADE IN avec vérifications enabled et AbortController
   const performFadeIn = (audio: HTMLAudioElement, targetVolume: number, duration: number = 2000): Promise<void> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const startTime = Date.now();
+      const signal = abortControllerRef.current?.signal;
 
       const fadeInStep = () => {
+        // Vérifier si l'opération a été annulée
+        if (signal?.aborted || !checkEnabledOrAbort()) {
+          audio.volume = 0;
+          audio.pause();
+          reject(new Error('Fade in annulé'));
+          return;
+        }
+
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
-        // Easing pour plus de naturel
-        const easedProgress = 1 - Math.pow(1 - progress, 2); // ease-out quadratic
-        
+
+        // Easing doux pour fade in naturel
+        const easedProgress = Math.pow(progress, 0.7); // ease-out plus doux
+
         audio.volume = targetVolume * easedProgress;
 
         if (progress < 1) {
@@ -458,68 +477,40 @@ const AmbientSoundManager: React.FC<AmbientSoundManagerProps> = ({
     });
   };
 
-  // 🔧 CISCO: Fade out et arrêt avec support des sons simultanés
+  // 🔧 CISCO: Fade out et arrêt avec vérifications enabled
   const fadeOutAndStop = async (): Promise<void> => {
     if (!audioRef.current || !isPlaying) return;
 
-    const config = SOUND_CONFIG[skyMode];
-    const fadeOutDuration = config?.fadeOutDuration || 2000;
+    try {
+      await performFadeOut(audioRef.current, 1000); // 1 seconde pour l'arrêt
 
-    return new Promise<void>((resolve) => {
-      const audio = audioRef.current!;
-      const startTime = Date.now();
-      const initialVolume = audio.volume;
+      // Arrêter complètement
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.volume = 0;
+        audioRef.current = null;
+      }
 
-      // 🔧 CISCO: Fade out simultané de tous les sons
-      const simultaneousInitialVolumes = simultaneousAudioRefs.current.map(simAudio => simAudio.volume);
-
-      const fadeOutStep = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / fadeOutDuration, 1);
-
-        // Easing pour un fade-out plus naturel
-        const easedProgress = Math.pow(progress, 2); // ease-in quadratic
-
-        // Fade out du son principal
-        audio.volume = initialVolume * (1 - easedProgress);
-
-        // 🔧 CISCO: Fade out des sons simultanés
-        simultaneousAudioRefs.current.forEach((simAudio, index) => {
-          if (simAudio && simultaneousInitialVolumes[index] !== undefined) {
-            simAudio.volume = simultaneousInitialVolumes[index] * (1 - easedProgress);
-          }
-        });
-
-        if (progress < 1) {
-          requestAnimationFrame(fadeOutStep);
-        } else {
-          // Arrêter le son principal
-          audio.pause();
-          audio.volume = 0;
-
-          // 🔧 CISCO: Arrêter tous les sons simultanés
-          simultaneousAudioRefs.current.forEach(simAudio => {
-            if (simAudio) {
-              simAudio.pause();
-              simAudio.volume = 0;
-            }
-          });
-          simultaneousAudioRefs.current = [];
-
-          setIsPlaying(false);
-          setCurrentSound('none');
-          setCurrentSimultaneousSounds([]);
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(fadeOutStep);
-    });
+      setIsPlaying(false);
+      setCurrentSound('none');
+      setActiveModeAudio('none');
+    } catch (error) {
+      // En cas d'erreur (ex: annulation), forcer l'arrêt
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.volume = 0;
+        audioRef.current = null;
+      }
+      setIsPlaying(false);
+      setCurrentSound('none');
+      setActiveModeAudio('none');
+    }
   };
 
-  // Transition de volume douce
+  // 🔧 CISCO: Transition de volume avec vérifications enabled
   const fadeToVolume = (targetVol: number) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !checkEnabledOrAbort()) return;
 
     const audio = audioRef.current;
     const startVolume = audio.volume;
@@ -529,59 +520,97 @@ const AmbientSoundManager: React.FC<AmbientSoundManagerProps> = ({
 
     let currentStep = 0;
     const fadeInterval = setInterval(() => {
+      // Vérifier si toujours enabled et audio valide
+      if (!checkEnabledOrAbort() || !audioRef.current || audioRef.current !== audio) {
+        clearInterval(fadeInterval);
+        return;
+      }
+
       currentStep++;
       audio.volume = Math.max(0, Math.min(1, startVolume + (stepAmount * currentStep)));
-      
+
       if (currentStep >= steps) {
         clearInterval(fadeInterval);
       }
     }, 50);
   };
 
-  // Réagir aux changements de mode de ciel
+  // 🔧 CISCO: Réagir aux changements de mode de ciel avec vérifications enabled
   useEffect(() => {
-    console.log(`🎵 AmbientSoundManager: Changement détecté - skyMode: ${skyMode}, enabled: ${enabled}`);
-    const config = SOUND_CONFIG[skyMode] || { sound: 'none' as AmbientSoundType, volume: 0, folder: '' };
-    console.log(`🎵 Configuration audio pour ${skyMode}:`, config);
-    changeSoundTo(config);
-  }, [skyMode, enabled]);
+    // Ne rien faire si audio désactivé
+    if (!enabled) {
+      console.log(`🔇 Audio désactivé - Ignoré changement vers ${skyMode}`);
+      return;
+    }
 
-  // Réagir aux changements de volume global
+    // 🔧 CISCO: Ignorer les changements automatiques si mode manuel actif
+    if (manualModeActive) {
+      console.log(`🚫 Mode manuel actif - Ignoré changement automatique vers ${skyMode}`);
+      return;
+    }
+
+    // Mettre à jour le mode local si différent
+    if (skyMode !== currentMode) {
+      console.log(`🎵 AmbientSoundManager: Synchronisation mode - skyMode: ${skyMode} vs currentMode: ${currentMode}`);
+      setCurrentMode(skyMode);
+    }
+
+    console.log(`🎵 AmbientSoundManager: Changement automatique détecté - skyMode: ${skyMode}, enabled: ${enabled}`);
+    const config = SOUND_CONFIG[skyMode] || { sound: 'none' as AmbientSoundType, volume: 0, folder: '' };
+    console.log(`🎵 Configuration audio automatique pour ${skyMode}:`, config);
+    changeSoundTo(config);
+  }, [skyMode, enabled, currentMode, manualModeActive]);
+
+  // 🔧 CISCO: Réagir aux changements de volume global avec vérifications
   useEffect(() => {
-    if (audioRef.current && isPlaying) {
+    if (audioRef.current && isPlaying && enabled) {
       const config = SOUND_CONFIG[skyMode] || { sound: 'none' as AmbientSoundType, volume: 0, folder: '' };
       fadeToVolume(config.volume * volume);
     }
-  }, [volume]);
+  }, [volume, enabled, skyMode, isPlaying]); // 🔧 CISCO: Dépendances complètes et stables
 
-  // 🔧 CISCO: Nettoyage lors du démontage avec support des sons simultanés
+  // 🔧 CISCO: Écouteur d'événement global pour changement immédiat
+  useEffect(() => {
+    // Exposer la fonction de changement immédiat globalement
+    (window as any).triggerAudioModeChange = handleImmediateModeChange;
+
+    console.log('🎵 AmbientSoundManager: Fonction de changement immédiat exposée globalement');
+
+    return () => {
+      // Nettoyer la fonction globale
+      delete (window as any).triggerAudioModeChange;
+    };
+  }, []); // 🔧 CISCO: Pas de dépendances pour éviter les re-créations
+
+  // 🔧 CISCO: Nettoyage lors du démontage avec AbortController
   useEffect(() => {
     return () => {
+      // Annuler toutes les opérations async en cours
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Libérer le mutex
+      transitionMutexRef.current = false;
+
       // Nettoyer le son principal
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.volume = 0;
         audioRef.current = null;
       }
 
-      // 🔧 CISCO: Nettoyer tous les sons simultanés
-      simultaneousAudioRefs.current.forEach(simAudio => {
-        if (simAudio) {
-          simAudio.pause();
-        }
-      });
-      simultaneousAudioRefs.current = [];
-
-      // Nettoyer le timer de rotation
-      if (rotationTimeoutRef.current) {
-        clearTimeout(rotationTimeoutRef.current);
+      // Nettoyer le timer de mode manuel
+      if (manualModeTimeoutRef.current) {
+        clearTimeout(manualModeTimeoutRef.current);
       }
+
+      console.log('🧹 CISCO: Nettoyage complet du AmbientSoundManager');
     };
   }, []);
 
-  // Interface pour debug/contrôle - SUPPRIMÉ pour éviter les doublons
-  if (!enabled) return null;
-
-  return null; // Plus d'affichage de debug
+  // Le composant ne rend rien - il gère seulement l'audio en arrière-plan
+  return null;
 };
 
 export default AmbientSoundManager;

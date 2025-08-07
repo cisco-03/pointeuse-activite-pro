@@ -51,8 +51,8 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = () => {
       // 🔧 PHYSIQUE: Dérive verticale ultra variée
       const verticalDrift = (Math.random() - 0.5) * 30; // ±15% de dérive verticale
 
-      // 🔧 PHYSIQUE: Opacité ultra variée pour effet de profondeur
-      const opacity = 0.3 + Math.random() * 0.6; // Entre 0.3 et 0.9
+      // 🔧 CISCO: Opacité fixée à 100% - AUCUN nuage semi-transparent
+      const opacity = 1.0; // 100% opaque - TOUJOURS visible
 
       // 🔧 PHYSIQUE: Profondeur aléatoire pour parallaxe
       const zIndex = Math.random() > 0.4 ? 12 : 10; // 60% en premier plan
@@ -117,15 +117,12 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = () => {
         const cloudElement = document.createElement('div');
         cloudElement.className = 'cloud';
 
-        // Dispersion temporelle plus réaliste - étalement des départs
-        let randomDelay;
-        if (cloud.x > -10) {
-          // Nuage déjà visible à l'écran : délai court mais plus étalé
-          randomDelay = Math.random() * 8; // 0 à 8 secondes pour plus d'étalement
-        } else {
-          // Nuage hors écran : délai plus long pour éviter l'effet de tempête
-          randomDelay = Math.random() * cloud.duration * 0.4; // Délai réduit mais plus étalé
-        }
+        // 🔧 CISCO: Suppression des délais d'apparition - nuages omniprésents dès le chargement
+        let randomDelay = 0; // Tous les nuages commencent immédiatement
+
+        // 🔧 CISCO: Dispersion des positions initiales pour éviter l'effet de groupe
+        // Les nuages commencent à des positions différentes dans leur cycle d'animation
+        const animationOffset = Math.random(); // 0 à 1 pour répartir sur tout le cycle
 
         // 🔧 MODE MANUEL: Teinte neutre par défaut avec variation selon le type
         let initialTint;
@@ -146,18 +143,20 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = () => {
         // 🔧 AJOUT: Attribut data pour identifier les nuages
         cloudElement.setAttribute('data-cloud-element', 'true');
 
-        // 🔧 PHYSIQUE: Style CSS avec nouvelles propriétés et animation continue
+        // 🔧 CISCO: Style CSS avec animation immédiate et répartition sur le cycle
         cloudElement.style.cssText = `
           position: absolute;
           left: ${cloud.x}%;
           top: ${cloud.y}%;
           --cloud-scale: ${cloud.size};
           --vertical-drift: ${cloud.verticalDrift}%;
-          --start-x: ${cloud.x - 50}vw; /* Position de départ personnalisée basée sur la position initiale */
+          --start-x: ${cloud.x - 50}vw;
+          --animation-offset: ${animationOffset}; /* Offset pour répartir les nuages sur le cycle */
           pointer-events: none;
           z-index: ${cloud.zIndex};
           transform: translateX(-50%) translateY(-50%) scale(var(--cloud-scale));
           animation: cloud-drift-realistic ${cloud.duration}s linear infinite ${randomDelay}s;
+          animation-delay: ${-cloud.duration * animationOffset}s; /* Délai négatif pour commencer au milieu du cycle */
           opacity: ${cloud.opacity};
           will-change: transform;
         `;

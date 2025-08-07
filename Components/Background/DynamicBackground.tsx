@@ -2,25 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import AstronomicalLayer from './AstronomicalLayer';
 import DiurnalLayer from './DiurnalLayer';
+import SunriseAnimation, { SunriseAnimationRef } from './SunriseAnimation';
 import { useLocation } from '../Context/LocationContext';
 import * as SunCalc from 'suncalc';
 import './BackgroundController'; // 🔧 IMPORT: Contrôleur manuel
 
-// 🎨 SYSTÈME DE ROTATION DES BACKGROUNDS (Background-03.png supprimé car problématique)
-const AVAILABLE_BACKGROUNDS = [
-  '/Background.png',
-  '/Background-02.png',
-  '/Background-04.png'
-];
+// 🔧 CISCO: Système de rotation supprimé - Background fixe pour éviter les changements automatiques
 
-// Fonction pour sélectionner un background aléatoire
-const getRandomBackground = (): string => {
-  console.log(`🎨 Backgrounds disponibles:`, AVAILABLE_BACKGROUNDS);
-  const randomIndex = Math.floor(Math.random() * AVAILABLE_BACKGROUNDS.length);
-  const selectedBackground = AVAILABLE_BACKGROUNDS[randomIndex];
-  console.log(`🎨 Index sélectionné: ${randomIndex}, Background: ${selectedBackground}`);
-  return selectedBackground;
-};
+// 🔧 CISCO: Fonction supprimée - Background fixe pour éviter les changements automatiques
 
 // 🔧 SYSTÈME DE PILOTAGE MANUEL SIMPLIFIÉ
 // Types pour les modes de fond prédéfinis
@@ -131,6 +120,14 @@ interface DynamicBackgroundProps {
 const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeChange }) => {
   const { userLocation, locationReady } = useLocation();
 
+  // 🔧 CISCO: Ref pour éviter les problèmes de dépendances avec onModeChange
+  const onModeChangeRef = useRef(onModeChange);
+
+  // Mettre à jour la ref quand onModeChange change
+  useEffect(() => {
+    onModeChangeRef.current = onModeChange;
+  }, [onModeChange]);
+
   // 🔧 FONCTION: Détection automatique du mode basé sur l'heure du PC
   const getAutoModeFromCurrentTime = (): BackgroundMode => {
     const now = new Date();
@@ -196,23 +193,12 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState<'fade-out' | 'fade-in'>('fade-out');
 
-  // 🎨 État pour le background sélectionné aléatoirement
-  const [selectedBackground, setSelectedBackground] = useState<string>(() => {
-    const background = getRandomBackground();
-    return background;
-  });
+  // 🔧 CISCO: Background UNIQUE - Background.png seulement (simplification)
+  const selectedBackground = '/Background.png'; // Background unique pour simplifier
 
-  // 🔧 FONCTION: Obtenir la position optimale selon le background
-  const getBackgroundPosition = (backgroundPath: string): string => {
-    switch (backgroundPath) {
-      case '/Background-04.png':
-        return 'center 85%'; // Background-04 ajusté
-      case '/Background-02.png':
-        return 'center 80%'; // Background-02 position intermédiaire
-      case '/Background.png':
-      default:
-        return 'center 75%'; // Background original, position standard
-    }
+  // 🔧 CISCO: Position simplifiée pour Background.png unique
+  const getBackgroundPosition = (): string => {
+    return 'center 75%'; // Position optimale pour Background.png
   };
   
   // Références pour l'animation
@@ -221,42 +207,122 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
   const landscapeRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const zoomTimelineRef = useRef<gsap.core.Timeline | null>(null);
+
+  // 🌅 CISCO: Référence pour l'animation de lever de soleil
+  const sunriseAnimationRef = useRef<SunriseAnimationRef>(null);
   
-  // 🔧 NOUVELLE FONCTION: Applique progressivement le filtre des nuages
-  const applyCloudTransition = (mode: BackgroundMode, duration: number = 6.0) => {
+  // 🌆 CISCO: NOUVELLE FONCTION - Transition progressive spéciale pour coucher de soleil - SYNCHRONISÉ AVEC DÉGRADÉ
+  const applySunsetCloudTransition = (imgElement: HTMLImageElement, duration: number = 15.0) => {
+    console.log(`🌆 Transition progressive coucher de soleil - Baisse luminosité sur ${duration}s`);
+
+    // Filtre initial (lumineux/doré)
+    const initialFilter = 'brightness(1.2) contrast(1.0) saturate(1.3) hue-rotate(10deg)';
+
+    // Filtre final (plus sombre/orangé)
+    const finalFilter = 'brightness(0.8) contrast(1.1) saturate(1.4) hue-rotate(20deg)';
+
+    // Application immédiate du filtre initial
+    gsap.set(imgElement, {
+      filter: initialFilter
+    });
+
+    // Transition progressive vers le filtre final (synchronisée avec arrière-plan)
+    gsap.to(imgElement, {
+      filter: finalFilter,
+      duration: duration, // CISCO: Même durée que dégradé arrière-plan (15s)
+      ease: "power1.inOut", // Easing doux et naturel
+      overwrite: true
+    });
+  };
+
+  // 🔧 CISCO: CROSS FADE progressif pour nuages - SYNCHRONISÉ AVEC DÉGRADÉ
+  const applyCloudTransition = (mode: BackgroundMode, duration: number = 15.0) => {
     const cloudTint = getCloudTintForMode(mode);
     const cloudElements = document.querySelectorAll('[data-cloud-element]');
-    
-    console.log(`🌤️ Transition progressive de ${cloudElements.length} nuages vers mode: ${mode}`);
-    
+
+    console.log(`🌤️ CROSS FADE progressif de ${cloudElements.length} nuages vers mode: ${mode} (${duration}s)`);
+    console.log(`🌤️ Filtre nuages appliqué: ${cloudTint}`);
+
     cloudElements.forEach((cloudElement) => {
       const img = cloudElement.querySelector('img');
       if (img) {
-        // Transition douce et progressive uniquement
-        gsap.to(img, {
-          filter: cloudTint,
-          duration: duration,
-          ease: "power2.inOut",
-          overwrite: true // Évite les conflits de transition
-        });
+        // 🌆 CISCO: TRAITEMENT SPÉCIAL pour mode SUNSET - Baisse progressive de luminosité
+        if (mode === 'sunset') {
+          applySunsetCloudTransition(img, duration);
+        } else {
+          // 🔧 CISCO: TRANSITION PROGRESSIVE PURE - Pas d'application immédiate
+          gsap.to(img, {
+            filter: cloudTint,
+            duration: duration, // 🔧 CISCO: Durée complète pour synchronisation parfaite (30s)
+            ease: "power1.inOut",
+            overwrite: true
+          });
+        }
       }
     });
   };
 
-  // 🔧 FONCTION PUBLIQUE: Pour que vous puissiez changer le mode avec transition intelligente
+  // 🔧 CISCO: NOUVELLE FONCTION - Synchronisation des étoiles avec les transitions principales
+  const applyStarsTransition = (mode: BackgroundMode, duration: number = 15.0) => {
+    // Synchroniser les étoiles fixes
+    const fixedStarsContainer = document.querySelector('[class*="fixed-star"]')?.parentElement;
+    if (fixedStarsContainer) {
+      const visibility = mode === 'night' ? 1 : (mode === 'dusk' || mode === 'dawn' ? 0.3 : 0);
+      console.log(`⭐ SYNCHRONISATION étoiles fixes vers opacité ${visibility} (${duration}s)`);
+
+      gsap.to(fixedStarsContainer, {
+        opacity: visibility,
+        duration: duration,
+        ease: "power1.inOut",
+        overwrite: true
+      });
+    }
+
+    // Synchroniser les étoiles filantes
+    const shootingStarsContainer = document.querySelector('[class*="shooting-star"]')?.parentElement;
+    if (shootingStarsContainer) {
+      const shouldShow = ['night', 'dusk', 'dawn'].includes(mode);
+      const targetOpacity = shouldShow ? (mode === 'night' ? 1 : 0.3) : 0;
+      console.log(`🌠 SYNCHRONISATION étoiles filantes vers opacité ${targetOpacity} (${duration}s)`);
+
+      gsap.to(shootingStarsContainer, {
+        opacity: targetOpacity,
+        duration: duration,
+        ease: "power1.inOut",
+        overwrite: true
+      });
+    }
+
+    // Synchroniser les étoiles astronomiques
+    const astronomicalStars = document.querySelectorAll('.star');
+    if (astronomicalStars.length > 0) {
+      const visibility = mode === 'night' ? 1 : (mode === 'dusk' || mode === 'dawn' ? 0.3 : 0);
+      console.log(`🌌 SYNCHRONISATION ${astronomicalStars.length} étoiles astronomiques vers opacité ${visibility} (${duration}s)`);
+
+      astronomicalStars.forEach((star) => {
+        gsap.to(star as HTMLElement, {
+          opacity: visibility,
+          duration: duration,
+          ease: "power1.inOut",
+          overwrite: true
+        });
+      });
+    }
+  };
+
+  // 🔧 CISCO: Changement de mode avec CROSS FADE progressif TOUJOURS
   const setBackgroundMode = (mode: BackgroundMode) => {
     console.log(`🎨 Changement de mode vers: ${mode} depuis ${currentMode}`);
-    
+
     // Si c'est le même mode, ne rien faire
     if (mode === currentMode) {
       console.log('🔄 Mode identique, pas de transition');
       return;
     }
 
-    // 🔧 CORRECTION: Toujours utiliser la transition douce, même sans pont
-    // Appliquer immédiatement la transition progressive des nuages
-    applyCloudTransition(mode, 8.0); // Durée augmentée pour plus de douceur
-    
+    // 🔧 CISCO: Les nuages seront synchronisés DANS les timelines GSAP
+    console.log(`🌤️ Préparation transition nuages pour mode: ${mode}`);
+
     // Transition avec pont si modes adjacents
     const transitionKey = `${currentMode}-${mode}` as keyof typeof TRANSITION_MODES;
     if (TRANSITION_MODES[transitionKey]) {
@@ -304,25 +370,34 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
       }
     });
 
-    // 🌊 TRANSITION ULTRA DOUCE: 8 secondes avec easing très doux
+    // 🌊 CISCO: SYNCHRONISATION PARFAITE - 15 secondes avec easing très doux
     timelineRef.current.to(gradientRef.current, {
       backgroundImage: finalGradient,
-      duration: 8.0, // Plus long pour plus de douceur
+      duration: 15.0, // CISCO: Harmonisation à 15 secondes pour synchronisation totale
       ease: "power1.inOut", // Easing plus doux que power2
       force3D: true,
       willChange: "background-image"
     });
 
-    // ✨ TRANSITION DE L'ÉCLAIRAGE: Synchronisée et ultra douce
+    // ✨ CISCO: TRANSITION DE L'ÉCLAIRAGE - Synchronisée (durée adaptée selon le mode)
+    const transitionDuration = targetMode === 'morning' ? 20.0 : 15.0; // 🔧 Mode matin = 20s, autres = 15s
     if (landscapeRef.current) {
       timelineRef.current.to(landscapeRef.current, {
         filter: `brightness(${targetBrightness})`,
-        duration: 8.0,
+        duration: transitionDuration, // 🔧 CISCO: Harmonisation adaptée
         ease: "power1.inOut"
       }, 0);
     }
 
-    // 🔧 TRANSITION DES NUAGES: Déjà appliquée avec applyCloudTransition
+    // 🔧 CISCO: CROSS FADE DES NUAGES - SYNCHRONISÉE DANS LA TIMELINE
+    timelineRef.current.call(() => {
+      applyCloudTransition(targetMode, transitionDuration);
+    }, [], 0.1); // 🔧 CISCO: Délai de 100ms pour synchronisation parfaite
+
+    // 🔧 CISCO: SYNCHRONISATION DES ÉTOILES - MÊME TIMING QUE LES NUAGES
+    timelineRef.current.call(() => {
+      applyStarsTransition(targetMode, transitionDuration);
+    }, [], 0.1); // 🔧 CISCO: Même délai pour synchronisation parfaite
   };
 
   // 🔧 NOUVELLE FONCTION: Transition avec pont intermédiaire
@@ -362,31 +437,43 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
       }
     });
 
-    // 🌉 PHASE 1: Transition vers le pont (4 secondes au lieu de 3)
+    // 🌉 CISCO: PHASE 1 - Transition vers le pont (7.5 secondes)
     timelineRef.current.to(gradientRef.current, {
       backgroundImage: bridgeGradient,
-      duration: 4.0, // Plus doux
-      ease: "power1.inOut" // Easing plus doux
+      duration: 7.5, // CISCO: Première moitié des 15 secondes
+      ease: "power1.inOut",
+      force3D: true,
+      willChange: "background-image"
     });
 
-    // 🌉 PHASE 2: Transition du pont vers le mode final (4 secondes au lieu de 3)
+    // 🌉 CISCO: PHASE 2 - Transition du pont vers le mode final (7.5 secondes)
     timelineRef.current.to(gradientRef.current, {
       backgroundImage: finalGradient,
-      duration: 4.0, // Plus doux
-      ease: "power1.inOut" // Easing plus doux
-    });
+      duration: 7.5, // CISCO: Seconde moitié des 15 secondes
+      ease: "power1.inOut",
+      force3D: true,
+      willChange: "background-image"
+    }, 7.5); // CISCO: Démarre après 7.5 secondes
 
-    // ✨ TRANSITION DE L'ÉCLAIRAGE: Synchronisée (8 secondes au total)
+    // ✨ CISCO: TRANSITION DE L'ÉCLAIRAGE - Synchronisée (durée adaptée selon le mode)
+    const transitionDuration = targetMode === 'morning' ? 20.0 : 15.0; // 🔧 Mode matin = 20s, autres = 15s
     if (landscapeRef.current) {
       timelineRef.current.to(landscapeRef.current, {
         filter: `brightness(${targetBrightness})`,
-        duration: 8.0, // Durée totale
-        ease: "power1.inOut" // Easing plus doux
+        duration: transitionDuration, // 🔧 CISCO: Harmonisation adaptée
+        ease: "power1.inOut"
       }, 0);
     }
 
-    // 🔧 TRANSITION DES NUAGES: Synchronisée avec la nouvelle fonction (8 secondes)
-    applyCloudTransition(targetMode, 8.0);
+    // 🔧 CISCO: CROSS FADE DES NUAGES - SYNCHRONISÉE DANS LA TIMELINE
+    timelineRef.current.call(() => {
+      applyCloudTransition(targetMode, transitionDuration);
+    }, [], 0.1); // 🔧 CISCO: Délai de 100ms pour synchronisation parfaite
+
+    // 🔧 CISCO: SYNCHRONISATION DES ÉTOILES - MÊME TIMING QUE LES NUAGES
+    timelineRef.current.call(() => {
+      applyStarsTransition(targetMode, transitionDuration);
+    }, [], 0.1); // 🔧 CISCO: Même délai pour synchronisation parfaite
   };
 
   // 🔧 FONCTION SIMPLIFIÉE: Obtenir les couleurs pour un mode donné
@@ -412,12 +499,12 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
   // 🔧 FONCTION SIMPLIFIÉE: Calculer les effets sur les nuages (optimisés)
   const getCloudTintForMode = (mode: BackgroundMode): string => {
     switch (mode) {
-      case 'midday': return 'brightness(1.2) saturate(0.9) contrast(1.0)';
+      case 'midday': return 'brightness(1.3) saturate(0.8) contrast(0.95) hue-rotate(0deg)'; // CISCO: Nuages très blancs/lumineux
       case 'morning': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
       case 'afternoon': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
       case 'dawn': return 'brightness(0.8) contrast(1.1) saturate(1.1) hue-rotate(5deg)';
       case 'sunrise': return 'brightness(0.9) contrast(1.1) saturate(1.2) hue-rotate(8deg)';
-      case 'sunset': return 'brightness(0.7) contrast(1.15) saturate(1.2) hue-rotate(8deg)';
+      case 'sunset': return 'brightness(1.0) contrast(1.1) saturate(1.3) hue-rotate(15deg)'; // CISCO: Nuages dorés/orangés, pas noirs
       case 'dusk': return 'brightness(0.6) contrast(1.15) saturate(1.2) hue-rotate(8deg)';
       case 'night': return 'brightness(0.3) contrast(1.2) saturate(0.7) hue-rotate(-10deg)';
       default: return 'brightness(1.0) saturate(1.0) contrast(1.0)';
@@ -459,26 +546,34 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
       }
     });
 
-    // 🌅 TRANSITION DIRECTE: Changement progressif des couleurs (6 secondes)
+    // 🌅 CISCO: TRANSITION DIRECTE - Changement progressif des couleurs (15 secondes)
     timelineRef.current.to(gradientRef.current, {
       backgroundImage: gradient,
-      duration: 6.0,
+      duration: 15.0, // CISCO: Harmonisation à 15 secondes
       ease: "power2.inOut",
       force3D: true,
       willChange: "background-image"
     });
 
-    // ✨ TRANSITION DE L'ÉCLAIRAGE: Synchronisée et progressive
+    // ✨ CISCO: TRANSITION DE L'ÉCLAIRAGE - Synchronisée et progressive (durée adaptée)
+    const transitionDuration = targetMode === 'morning' ? 20.0 : 15.0; // 🔧 Mode matin = 20s, autres = 15s
     if (landscapeRef.current) {
       timelineRef.current.to(landscapeRef.current, {
         filter: `brightness(${brightness})`,
-        duration: 6.0,
+        duration: transitionDuration, // 🔧 CISCO: Harmonisation adaptée
         ease: "power2.inOut"
       }, 0);
     }
 
-    // 🔧 TRANSITION DES NUAGES: Progressive et fluide avec la nouvelle fonction
-    applyCloudTransition(targetMode, 6.0);
+    // 🔧 CISCO: CROSS FADE DES NUAGES - SYNCHRONISÉE DANS LA TIMELINE
+    timelineRef.current.call(() => {
+      applyCloudTransition(targetMode, transitionDuration);
+    }, [], 0.1); // 🔧 CISCO: Délai de 100ms pour synchronisation parfaite
+
+    // 🔧 CISCO: SYNCHRONISATION DES ÉTOILES - MÊME TIMING QUE LES NUAGES
+    timelineRef.current.call(() => {
+      applyStarsTransition(targetMode, transitionDuration);
+    }, [], 0.1); // 🔧 CISCO: Même délai pour synchronisation parfaite
   };
 
   // Animation de zoom du paysage
@@ -497,16 +592,130 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, onModeC
   // 🔧 FONCTION PUBLIQUE: Permet de changer le mode depuis l'extérieur
   (window as any).setBackgroundMode = setBackgroundMode;
 
-  // 🔧 NOUVEAU: Re-synchronisation automatique quand la géolocalisation devient disponible
-  useEffect(() => {
-    if (locationReady) {
-      const newAutoMode = getAutoModeFromCurrentTime();
-      if (newAutoMode !== currentMode) {
-        console.log(`🌍 Géolocalisation disponible - Mise à jour automatique du mode: ${currentMode} → ${newAutoMode}`);
-        setCurrentMode(newAutoMode);
-      }
+  // 🌅 CISCO: Fonction publique pour déclencher l'animation de lever de soleil
+  const triggerSunriseAnimation = () => {
+    console.log('🌅 Déclenchement de l\'animation de lever de soleil depuis DynamicBackground');
+
+    // CISCO: Animation maintenant disponible sur TOUS les backgrounds !
+    console.log(`🌅 Animation de lever de soleil déclenchée en mode: ${currentMode}`);
+
+    // Déclencher l'animation via la référence
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerSunrise();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible');
     }
-  }, [locationReady, userLocation]);
+  };
+
+  // 🌄 CISCO: Nouvelle fonction publique pour déclencher l'animation du matin
+  const triggerMorningAnimation = () => {
+    console.log('🌄 Déclenchement de l\'animation du matin depuis DynamicBackground');
+
+    console.log(`🌄 Animation du matin déclenchée en mode: ${currentMode}`);
+
+    // Déclencher l'animation via la référence
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerMorning();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour le matin');
+    }
+  };
+
+  // ☀️ CISCO: Nouvelle fonction publique pour déclencher l'animation du zénith
+  const triggerMiddayAnimation = () => {
+    console.log('☀️ Déclenchement de l\'animation du zénith depuis DynamicBackground');
+
+    console.log(`☀️ Animation du zénith déclenchée en mode: ${currentMode}`);
+
+    // Déclencher l'animation via la référence
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerMidday();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour le zénith');
+    }
+  };
+
+  // 🌅 CISCO: Nouvelle fonction publique pour déclencher l'animation de l'après-midi
+  const triggerAfternoonAnimation = () => {
+    console.log('🌅 Déclenchement de l\'animation de l\'après-midi depuis DynamicBackground');
+
+    console.log(`🌅 Animation de l\'après-midi déclenchée en mode: ${currentMode}`);
+
+    // Déclencher l'animation via la référence
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerAfternoon();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour l\'après-midi');
+    }
+  };
+
+  // 🌇 CISCO: Nouvelle fonction publique pour déclencher l'animation du coucher
+  const triggerSunsetAnimation = () => {
+    console.log('🌇 Déclenchement de l\'animation du coucher depuis DynamicBackground');
+
+    console.log(`🌇 Animation du coucher déclenchée en mode: ${currentMode}`);
+
+    // Déclencher l'animation via la référence
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerSunset();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour le coucher');
+    }
+  };
+
+  // 🌅 CISCO: Nouvelle fonction publique pour déclencher l'animation de l'aube
+  const triggerDawnAnimation = () => {
+    console.log('🌅 Déclenchement de l\'animation de l\'aube depuis DynamicBackground');
+
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerDawn();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour l\'aube');
+    }
+  };
+
+  // 🌆 CISCO: Nouvelle fonction publique pour déclencher l'animation du crépuscule
+  const triggerDuskAnimation = () => {
+    console.log('🌆 Déclenchement de l\'animation du crépuscule depuis DynamicBackground');
+
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerDusk();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour le crépuscule');
+    }
+  };
+
+  // 🌌 CISCO: Nouvelle fonction publique pour déclencher l'animation de la nuit profonde
+  const triggerNightAnimation = () => {
+    console.log('🌌 Déclenchement de l\'animation de la nuit profonde depuis DynamicBackground');
+
+    if (sunriseAnimationRef.current) {
+      sunriseAnimationRef.current.triggerNight();
+    } else {
+      console.warn('⚠️ Référence SunriseAnimation non disponible pour la nuit profonde');
+    }
+  };
+
+  // Exposer les fonctions globalement
+  (window as any).triggerSunriseAnimation = triggerSunriseAnimation;
+  (window as any).triggerMorningAnimation = triggerMorningAnimation; // CISCO: Animation matin 9h
+  (window as any).triggerMiddayAnimation = triggerMiddayAnimation; // CISCO: Animation zénith 12h
+  (window as any).triggerAfternoonAnimation = triggerAfternoonAnimation; // CISCO: Animation après-midi 15h
+  (window as any).triggerSunsetAnimation = triggerSunsetAnimation; // CISCO: Animation coucher 18h
+  (window as any).triggerDawnAnimation = triggerDawnAnimation; // CISCO: Animation aube (soleil sous horizon)
+  (window as any).triggerDuskAnimation = triggerDuskAnimation; // CISCO: Animation crépuscule (soleil derrière horizon)
+  (window as any).triggerNightAnimation = triggerNightAnimation; // CISCO: Animation nuit profonde (soleil très bas)
+
+  // 🔧 CISCO: DÉSACTIVÉ - Re-synchronisation automatique pour éviter les changements non désirés
+  // useEffect(() => {
+  //   if (locationReady) {
+  //     const newAutoMode = getAutoModeFromCurrentTime();
+  //     if (newAutoMode !== currentMode) {
+  //       console.log(`🌍 Géolocalisation disponible - Mise à jour automatique du mode: ${currentMode} → ${newAutoMode}`);
+  //       setCurrentMode(newAutoMode);
+  //     }
+  //   }
+  // }, [locationReady, currentMode]);
 
   // Initialisation une seule fois
   useEffect(() => {
@@ -538,22 +747,22 @@ L'utilisateur peut toujours changer le mode manuellement via le panneau de contr
     };
   }, []);
 
-  // 🔧 NOUVEAU: Notifier le mode initial au montage
+  // 🔧 CISCO: Notifier le mode initial au montage - AVEC currentMode dans les dépendances
   useEffect(() => {
-    if (onModeChange) {
+    if (onModeChangeRef.current) {
       console.log(`🎵 DynamicBackground: Notification du mode initial: ${currentMode}`);
-      onModeChange(currentMode);
+      onModeChangeRef.current(currentMode);
     }
-  }, [onModeChange]); // Seulement au montage
+  }, [currentMode]); // 🔧 CISCO: Inclure currentMode pour éviter les valeurs obsolètes
 
   // Réagir aux changements de mode
   useEffect(() => {
     updateBackground();
     // 🔧 NOUVEAU: Notifier le parent du changement de mode
-    if (onModeChange) {
-      onModeChange(currentMode);
+    if (onModeChangeRef.current) {
+      onModeChangeRef.current(currentMode);
     }
-  }, [currentMode, onModeChange]);
+  }, [currentMode]); // 🔧 CISCO: Seulement currentMode comme dépendance
 
   return (
     <div
@@ -578,13 +787,19 @@ L'utilisateur peut toujours changer le mode manuellement via le panneau de contr
       <AstronomicalLayer skyMode={currentMode} />
       <DiurnalLayer />
 
+      {/* 🌅 CISCO: Animation de lever de soleil - Disponible sur TOUS les backgrounds */}
+      <SunriseAnimation
+        ref={sunriseAnimationRef}
+        isVisible={true}
+      />
+
       {/* Paysage avec éclairage dynamique - Background aléatoire */}
       <div
         ref={landscapeRef}
         className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat pointer-events-none"
         style={{
           backgroundImage: `url(${selectedBackground})`,
-          backgroundPosition: getBackgroundPosition(selectedBackground), // Position adaptée selon le background
+          backgroundPosition: getBackgroundPosition(), // Position pour Background.png
           backgroundSize: 'cover', // Taille standard pour tous les backgrounds
           zIndex: 5,
           transformOrigin: 'center center',

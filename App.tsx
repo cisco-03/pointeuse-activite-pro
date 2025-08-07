@@ -52,7 +52,8 @@ const ControlButtonsWrapperWithTime: React.FC<{
   audioVolume: number;
   onToggleEnabled: (enabled: boolean) => void;
   onVolumeChange: (volume: number) => void;
-}> = ({ audioEnabled, audioVolume, onToggleEnabled, onVolumeChange }) => {
+  lang: Lang;
+}> = ({ audioEnabled, audioVolume, onToggleEnabled, onVolumeChange, lang }) => {
   const { getCurrentTime, setSimulatedTime } = useTime();
 
   return (
@@ -63,6 +64,7 @@ const ControlButtonsWrapperWithTime: React.FC<{
       audioVolume={audioVolume}
       onToggleEnabled={onToggleEnabled}
       onVolumeChange={onVolumeChange}
+      lang={lang}
     />
   );
 };
@@ -134,6 +136,13 @@ const translations: { [key in Lang]: Translations } = {
     sendEmail: "Envoyer par Email",
     print: "Imprimer",
     clearHistory: "Vider l'historique",
+    showAgencySelector: "Agences",
+    showHistory: "Historique",
+    deleteAgency: "Supprimer l'agence",
+    confirmDeleteAgency: "Êtes-vous sûr de vouloir supprimer cette agence ? Cette action est irréversible.",
+    showArchives: "Archives",
+    archivedSessions: "Sessions archivées (90+ jours)",
+    noArchives: "Aucune session archivée trouvée.",
     confirmClearHistory: "Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.",
     noHistory: "Aucun historique de session trouvé.",
     help: "Aide",
@@ -191,6 +200,41 @@ const translations: { [key in Lang]: Translations } = {
     countdownFinished: "Votre compte à rebours est terminé.",
     sessionAutoSaved: "Session automatiquement sauvegardée",
     understood: "COMPRIS !",
+    // Traductions pour les contrôles d'arrière-plan
+    backgroundControl: "Contrôle Arrière-plan",
+    simulatedTime: "Temps simulé:",
+    backgroundModes: "Modes Arrière-plan:",
+    hideControls: "Masquer contrôles",
+    advancedControls: "Contrôles avancés",
+    manualTime: "Heure manuelle:",
+    refresh: "Actualiser",
+    refreshTooltip: "Actualiser - Retour au temps réel et synchronisation de l'arrière-plan",
+    backgroundControlTooltip: "Panneau de Contrôle Arrière-plan",
+    ambientControls: "Contrôles d'Ambiance",
+    changeTimeAtmosphere: "Changez l'heure et l'atmosphère",
+    // Phases de transition
+    deepNight: "Nuit profonde",
+    dawn: "Aube",
+    sunrise: "Lever du soleil",
+    morning: "Matin",
+    middayZenith: "Midi (zénith)",
+    afternoon: "Après-midi",
+    sunset: "Coucher du soleil",
+    dusk: "Crépuscule",
+    // Contrôles audio
+    ambientAudio: "Ambiance Audio",
+    ambientSounds: "Sons d'ambiance :",
+    enabled: "Activé",
+    enable: "Activer",
+    volume: "Volume :",
+    audioControlsTooltip: "Contrôles audio d'ambiance",
+    audioEnabledTooltip: "Contrôles audio d'ambiance (Activé)",
+    audioDisabledTooltip: "Contrôles audio d'ambiance (Désactivé - Cliquez pour activer)",
+    ambientSoundsAvailable: "Sons d'ambiance disponibles",
+    whyNotAutomatic: "Pourquoi l'audio n'est pas automatique ?",
+    browserProtection: "Les navigateurs modernes bloquent la lecture automatique de sons pour protéger votre expérience de navigation.",
+    howToActivate: "Comment activer :",
+    activateInstructions: "Cliquez simplement sur \"Activer\" ci-dessous pour profiter des sons d'ambiance qui s'adaptent automatiquement au cycle jour/nuit de votre arrière-plan.",
   },
   en: {
     loginTitle: "Pro Activity Tracker",
@@ -214,6 +258,13 @@ const translations: { [key in Lang]: Translations } = {
     sendEmail: "Send via Email",
     print: "Print",
     clearHistory: "Clear History",
+    showAgencySelector: "Agencies",
+    showHistory: "History",
+    deleteAgency: "Delete Agency",
+    confirmDeleteAgency: "Are you sure you want to delete this agency? This action cannot be undone.",
+    showArchives: "Archives",
+    archivedSessions: "Archived Sessions (90+ days)",
+    noArchives: "No archived sessions found.",
     confirmClearHistory: "Are you sure you want to delete all history? This action cannot be undone.",
     noHistory: "No session history found.",
     help: "Help",
@@ -271,6 +322,41 @@ const translations: { [key in Lang]: Translations } = {
     countdownFinished: "Your countdown is finished.",
     sessionAutoSaved: "Session automatically saved",
     understood: "GOT IT!",
+    // Traductions pour les contrôles d'arrière-plan
+    backgroundControl: "Background Control",
+    simulatedTime: "Simulated time:",
+    backgroundModes: "Background Modes:",
+    hideControls: "Hide controls",
+    advancedControls: "Advanced controls",
+    manualTime: "Manual time:",
+    refresh: "Refresh",
+    refreshTooltip: "Refresh - Return to real time and background synchronization",
+    backgroundControlTooltip: "Background Control Panel",
+    ambientControls: "Ambient Controls",
+    changeTimeAtmosphere: "Change time and atmosphere",
+    // Phases de transition
+    deepNight: "Deep night",
+    dawn: "Dawn",
+    sunrise: "Sunrise",
+    morning: "Morning",
+    middayZenith: "Midday (zenith)",
+    afternoon: "Afternoon",
+    sunset: "Sunset",
+    dusk: "Dusk",
+    // Contrôles audio
+    ambientAudio: "Ambient Audio",
+    ambientSounds: "Ambient sounds:",
+    enabled: "Enabled",
+    enable: "Enable",
+    volume: "Volume:",
+    audioControlsTooltip: "Ambient audio controls",
+    audioEnabledTooltip: "Ambient audio controls (Enabled)",
+    audioDisabledTooltip: "Ambient audio controls (Disabled - Click to enable)",
+    ambientSoundsAvailable: "Ambient sounds available",
+    whyNotAutomatic: "Why isn't audio automatic?",
+    browserProtection: "Modern browsers block automatic sound playback to protect your browsing experience.",
+    howToActivate: "How to activate:",
+    activateInstructions: "Simply click \"Enable\" below to enjoy ambient sounds that automatically adapt to your background's day/night cycle.",
   },
 };
 
@@ -417,6 +503,7 @@ const useAuth = () => {
 const useFirestore = (userId: string | undefined) => {
     const [agencies, setAgencies] = useState<Agency[]>([]);
     const [history, setHistory] = useState<Session[]>([]);
+    const [archives, setArchives] = useState<Session[]>([]);
 
     const fetchAgencies = useCallback(async () => {
         if (!userId) return;
@@ -440,6 +527,21 @@ const useFirestore = (userId: string | undefined) => {
         } catch (error) {
             console.error("Error adding agency:", error);
             return null;
+        }
+    };
+
+    const deleteAgency = async (agencyToDelete: Agency): Promise<boolean> => {
+        if (!userId) return false;
+        const userDocRef = doc(db, "users", userId);
+        try {
+            await updateDoc(userDocRef, {
+                agencies: arrayRemove(agencyToDelete)
+            });
+            setAgencies(prev => prev.filter(agency => agency.id !== agencyToDelete.id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting agency:", error);
+            return false;
         }
     };
     
@@ -520,6 +622,29 @@ const useFirestore = (userId: string | undefined) => {
 
     }, [userId]);
 
+    const fetchArchives = useCallback(async () => {
+        if (!userId) return;
+
+        console.log('📚 Chargement des archives...');
+
+        try {
+            const archivesColRef = collection(db, 'archives');
+            const q = query(archivesColRef, where("userId", "==", userId), orderBy("startTime", "desc"));
+            const querySnapshot = await getDocs(q);
+
+            const archivesList: Session[] = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Session));
+
+            setArchives(archivesList);
+            console.log(`✅ ${archivesList.length} sessions archivées chargées`);
+
+        } catch (error) {
+            console.error("❌ Erreur lors du chargement des archives:", error);
+            setArchives([]);
+        }
+    }, [userId]);
 
     useEffect(() => {
         if(userId) {
@@ -528,10 +653,11 @@ const useFirestore = (userId: string | undefined) => {
         } else {
             setAgencies([]);
             setHistory([]);
+            setArchives([]);
         }
     }, [userId, fetchAgencies, fetchHistory]);
 
-    return { agencies, addAgency, history, saveSession, fetchHistory, clearHistory };
+    return { agencies, addAgency, deleteAgency, history, archives, saveSession, fetchHistory, clearHistory, fetchArchives };
 };
 
 
@@ -824,11 +950,57 @@ const LoginScreen: React.FC<{ onLogin: () => void; lang: Lang }> = ({ onLogin, l
     );
 };
 
-const Header: React.FC<{ user: AppUser; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void; t: Translations; onShowHelp: () => void }> = ({ user, onLogout, lang, setLang, t, onShowHelp }) => {
+const Header: React.FC<{
+    user: AppUser;
+    onLogout: () => void;
+    lang: Lang;
+    setLang: (l: Lang) => void;
+    t: Translations;
+    onShowHelp: () => void;
+    onShowAgencySelector: () => void;
+    onShowHistory: () => void;
+    onShowArchives: () => void;
+    showAgencySelector: boolean;
+    showHistory: boolean;
+    showArchives: boolean;
+}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, showAgencySelector, showHistory, showArchives }) => {
     return (
         <header className="bg-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 print:hidden" style={{ position: 'relative', zIndex: 20 }}>
             <h1 className="text-lg sm:text-xl font-bold text-teal-500 text-center sm:text-left">{t.loginTitle as string}</h1>
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+                <button
+                    onClick={onShowAgencySelector}
+                    className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                        showAgencySelector
+                            ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                    }`}
+                    title={showAgencySelector ? `Fermer ${t.showAgencySelector as string}` : `Ouvrir ${t.showAgencySelector as string}`}
+                >
+                    <span className="hidden sm:inline">{showAgencySelector ? '🏢 ' : '🏢 '}</span>{t.showAgencySelector as string}
+                </button>
+                <button
+                    onClick={onShowHistory}
+                    className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                        showHistory
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                    }`}
+                    title={showHistory ? `Fermer ${t.showHistory as string}` : `Ouvrir ${t.showHistory as string}`}
+                >
+                    <span className="hidden sm:inline">{showHistory ? '📊 ' : '📊 '}</span>{t.showHistory as string}
+                </button>
+                <button
+                    onClick={onShowArchives}
+                    className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                        showArchives
+                            ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                    }`}
+                    title={showArchives ? `Fermer ${t.showArchives as string}` : `Ouvrir ${t.showArchives as string}`}
+                >
+                    <span className="hidden sm:inline">{showArchives ? '📦 ' : '📦 '}</span>{t.showArchives as string}
+                </button>
                 <button
                     onClick={onShowHelp}
                     className="bg-blue-600 hover:bg-blue-700 px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium"
@@ -992,6 +1164,102 @@ const RandomCheckModal: React.FC<{ t: Translations, onConfirm: (note: string) =>
     );
 };
 
+const ArchivesPanel: React.FC<{ archives: Session[], lang: Lang, t: Translations }> = ({ archives, lang, t }) => {
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    const generateTxtContent = () => {
+        let content = `${t.archivedSessions}\n==================\n\n`;
+        archives.forEach(session => {
+            content += `${t.date as string}: ${formatDate(session.startTime, lang)}\n`;
+            content += `${t.agencyName as string}: ${session.agencyName}\n`;
+            content += `${t.duration as string}: ${formatTime(session.totalDurationSeconds)}\n`;
+            content += `Logs:\n`;
+            session.logs.forEach(log => {
+                content += `  - [${formatTimestamp(log.timestamp, lang)}] ${log.note}\n`;
+            });
+            content += `\n------------------\n\n`;
+        });
+        return content;
+    };
+
+    const exportTxt = () => {
+        const content = generateTxtContent();
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `archives_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const sendEmail = () => {
+        const subject = encodeURIComponent(t.archivedSessions as string);
+        const body = encodeURIComponent(generateTxtContent());
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    };
+
+    const printReport = () => {
+        window.print();
+    };
+
+    if (archives.length === 0) {
+        return (
+            <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
+                <h2 className="text-xl sm:text-2xl font-semibold mb-4">{t.archivedSessions as string}</h2>
+                <p className="text-gray-400 text-center py-8">{t.noArchives as string}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
+                <h2 className="text-xl sm:text-2xl font-semibold">{t.archivedSessions as string}</h2>
+                <div className="flex flex-wrap gap-2 print:hidden">
+                    <button onClick={exportTxt} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.exportTxt as string}</button>
+                    <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.sendEmail as string}</button>
+                    <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.print as string}</button>
+                </div>
+            </div>
+            <div className="space-y-2">
+                {archives.map(session => (
+                    <div key={session.id} className="bg-gray-700 rounded-lg">
+                        <button
+                            className="w-full flex justify-between items-center p-4 text-left"
+                            onClick={() => setExpandedId(expandedId === session.id ? null : session.id!)}
+                        >
+                            <div className="flex-1">
+                                <p className="font-semibold">{session.agencyName}</p>
+                                <p className="text-sm text-gray-400">{formatDate(session.startTime, lang)}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="font-mono text-teal-400">{formatTime(session.totalDurationSeconds)}</p>
+                                <p className="text-xs text-gray-500">📦 Archivé</p>
+                            </div>
+                        </button>
+                        {expandedId === session.id && (
+                            <div className="px-4 pb-4 border-t border-gray-600">
+                                <h4 className="font-semibold mb-2 mt-3">{t.activityLog as string}:</h4>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                    {session.logs.map((log, index) => (
+                                        <div key={index} className="text-sm bg-gray-800 p-2 rounded">
+                                            <span className="font-mono text-gray-400 mr-2">[{formatTimestamp(log.timestamp, lang)}]</span>
+                                            <span className="text-gray-300">{log.note}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 // ========= MAIN APP COMPONENT =========
 export default function App() {
@@ -999,13 +1267,16 @@ export default function App() {
     const [lang, setLang] = useState<Lang>('fr');
     const t = useMemo(() => translations[lang], [lang]);
     
-    const { agencies, addAgency, history, saveSession, clearHistory } = useFirestore(user?.uid);
+    const { agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives } = useFirestore(user?.uid);
 
     const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
     const [newAgencyName, setNewAgencyName] = useState('');
     const [showAddAgency, setShowAddAgency] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [showAgencySelector, setShowAgencySelector] = useState(true);
+    const [showHistory, setShowHistory] = useState(false);
+    const [showArchives, setShowArchives] = useState(false);
     
     const [firstTask, setFirstTask] = useState('');
     const [currentNote, setCurrentNote] = useState('');
@@ -1291,6 +1562,15 @@ export default function App() {
         }
     }
 
+    const handleDeleteAgency = async (agency: Agency) => {
+        if (window.confirm(t.confirmDeleteAgency as string)) {
+            const success = await deleteAgency(agency);
+            if (success && selectedAgencyId === agency.id) {
+                setSelectedAgencyId(''); // Désélectionner si c'était l'agence sélectionnée
+            }
+        }
+    };
+
     const handleInactivity = useCallback(() => {
         if (status === 'running') {
             forcePause();
@@ -1336,17 +1616,40 @@ export default function App() {
                 <DynamicBackground onModeChange={handleBackgroundModeChange}>
                     <div className="font-sans">
 
-                        <Header user={user} onLogout={logout} lang={lang} setLang={setLang} t={t} onShowHelp={() => setShowHelp(true)} />
+                        <Header
+                            user={user}
+                            onLogout={logout}
+                            lang={lang}
+                            setLang={setLang}
+                            t={t}
+                            onShowHelp={() => setShowHelp(true)}
+                            onShowAgencySelector={() => {
+                                setShowAgencySelector(!showAgencySelector);
+                            }}
+                            onShowHistory={() => {
+                                setShowHistory(!showHistory);
+                            }}
+                            onShowArchives={() => {
+                                setShowArchives(!showArchives);
+                                if (!showArchives) {
+                                    fetchArchives(); // Charger les archives quand on ouvre la section
+                                }
+                            }}
+                            showAgencySelector={showAgencySelector}
+                            showHistory={showHistory}
+                            showArchives={showArchives}
+                        />
 
             <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto">
-                {/* Timer Dashboard */}
+                {/* Timer Dashboard - Affiché seulement si showAgencySelector est true */}
+                {showAgencySelector && (
                 <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-4 sm:p-6 shadow-xl border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                         {/* Left: Config */}
                         <div>
                            <label htmlFor="agency-select" className="block text-sm font-medium text-gray-400 mb-2">{t.selectAgency as string}</label>
                             <div className="flex space-x-2">
-                                <select 
+                                <select
                                     id="agency-select"
                                     value={selectedAgencyId}
                                     onChange={(e) => setSelectedAgencyId(e.target.value)}
@@ -1356,20 +1659,34 @@ export default function App() {
                                     <option value="" disabled>{t.selectAgency as string}</option>
                                     {agencies.map(agency => <option key={agency.id} value={agency.id}>{agency.name}</option>)}
                                 </select>
-                                <button 
-                                    onClick={() => setShowAddAgency(!showAddAgency)} 
+                                <button
+                                    onClick={() => setShowAddAgency(!showAddAgency)}
                                     disabled={status !== 'stopped'}
                                     className="p-3 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50"
+                                    title={t.addAgency as string}
                                 >
                                     <PlusIcon/>
                                 </button>
+                                {selectedAgencyId && (
+                                    <button
+                                        onClick={() => {
+                                            const selectedAgency = agencies.find(a => a.id === selectedAgencyId);
+                                            if (selectedAgency) handleDeleteAgency(selectedAgency);
+                                        }}
+                                        disabled={status !== 'stopped'}
+                                        className="p-3 bg-red-700 hover:bg-red-600 rounded-md transition-colors disabled:opacity-50"
+                                        title={t.deleteAgency as string}
+                                    >
+                                        🗑️
+                                    </button>
+                                )}
                             </div>
                             {showAddAgency && (
                                 <form onSubmit={handleAddAgency} className="mt-4 flex space-x-2">
-                                    <input 
-                                        type="text" 
-                                        value={newAgencyName} 
-                                        onChange={(e) => setNewAgencyName(e.target.value)} 
+                                    <input
+                                        type="text"
+                                        value={newAgencyName}
+                                        onChange={(e) => setNewAgencyName(e.target.value)}
                                         placeholder={t.agencyName as string}
                                         className="flex-grow bg-gray-900 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
                                     />
@@ -1470,11 +1787,21 @@ export default function App() {
                         </div>
                     )}
                 </div>
+                )}
 
-                {/* Session History */}
+                {/* Session History - Affiché seulement si showHistory est true */}
+                {showHistory && (
                 <div className="printable-area">
                     <HistoryPanel history={history} lang={lang} t={t} onClearHistory={clearHistory} />
                 </div>
+                )}
+
+                {/* Archives - Affiché seulement si showArchives est true */}
+                {showArchives && (
+                <div className="printable-area">
+                    <ArchivesPanel archives={archives} lang={lang} t={t} />
+                </div>
+                )}
             </main>
             
             {/* Modals */}
@@ -1589,7 +1916,7 @@ export default function App() {
                 @media print {
                   .print\\:hidden { display: none; }
                   body { background-color: white; color: black; }
-                  .printable-area { 
+                  .printable-area {
                     color: black;
                     background-color: white;
                   }
@@ -1600,6 +1927,48 @@ export default function App() {
                   }
                   .printable-area h2, .printable-area p, .printable-area span, .printable-area li {
                     color: black !important;
+                  }
+                }
+
+                /* 🌅 STYLES POUR L'ANIMATION DE LEVER DE SOLEIL - VERSION RÉALISTE CISCO */
+
+                /*
+                  Halo solaire ULTRA-DIFFUS - CISCO: BEAUCOUP plus lumineux sans cercle net
+                  Lueur diffuse maximale pour tous les backgrounds
+                */
+                .sun-glow {
+                  background: radial-gradient(circle,
+                    rgba(255, 255, 255, 0.6) 0%,     /* CISCO: Centre plus lumineux */
+                    rgba(255, 255, 200, 0.5) 5%,     /* CISCO: Transition ultra-douce */
+                    rgba(255, 240, 120, 0.4) 10%,    /* CISCO: Jaune-blanc lumineux */
+                    rgba(255, 220, 60, 0.35) 15%,    /* CISCO: Jaune doré plus intense */
+                    rgba(255, 200, 20, 0.3) 25%,     /* CISCO: Jaune pur étendu */
+                    rgba(255, 180, 0, 0.25) 35%,     /* CISCO: Orange diffus */
+                    rgba(255, 160, 0, 0.2) 50%,      /* CISCO: Extension large */
+                    rgba(255, 140, 0, 0.15) 65%,     /* CISCO: Bordure étendue */
+                    rgba(255, 120, 0, 0.1) 80%,      /* CISCO: Très étendu */
+                    rgba(255, 100, 0, 0.05) 90%,     /* CISCO: Extension maximale */
+                    rgba(255, 80, 0, 0.02) 95%,      /* CISCO: Bordure ultra-diffuse */
+                    transparent 100%);
+                  border-radius: 50%;
+                  transform-origin: center center;
+                  filter: blur(25px) brightness(1.8) contrast(1.2); /* CISCO: Blur maximal pour diffusion totale, AUCUN cercle */
+                }
+
+                /*
+                  🌟 LENS FLARE PNG - CISCO: Image réelle avec rotation très lente
+                  Remplace le CSS par une vraie image de lens flare
+                */
+
+                /* Animation subtile pour le lens flare PNG (maintenue) */
+                @keyframes lens-flare-shimmer {
+                  0%, 100% {
+                    opacity: 0.8;
+                    transform: scale(1.0);
+                  }
+                  50% {
+                    opacity: 1.0;
+                    transform: scale(1.05);
                   }
                 }
             `}</style>
@@ -1619,6 +1988,7 @@ export default function App() {
                         audioVolume={audioVolume}
                         onToggleEnabled={setAudioEnabled}
                         onVolumeChange={setAudioVolume}
+                        lang={lang}
                     />
 
                     {/* Footer slide avec liens sociaux */}

@@ -155,8 +155,11 @@ Exemples:
 `);
 };
 
+// 🔧 CISCO: DÉSACTIVÉ - Fonctions automatiques qui interfèrent avec le contrôle manuel
 // Exposer les fonctions globalement pour utilisation dans la console
 if (typeof window !== 'undefined') {
+  // ❌ DÉSACTIVÉ: Pas d'exposition automatique pour éviter les conflits
+  /*
   (window as any).bgControl = {
     setMode,
     dawn,
@@ -171,7 +174,7 @@ if (typeof window !== 'undefined') {
     syncWithRealTime,
     help
   };
-  
+
   console.log(`
 🎮 CONTRÔLEUR MANUEL ACTIVÉ !
 
@@ -186,6 +189,10 @@ Ou directement:
   setMode('dawn')
   syncWithRealTime()
   `);
+  */
+
+  // 🔧 CISCO: Contrôle UNIQUEMENT via TimeSimulator - pas d'automatisme
+  console.log('🎮 BackgroundController désactivé - Contrôle via TimeSimulator uniquement');
 }
 
 export default {
