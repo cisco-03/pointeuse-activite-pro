@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 
 // Interface pour un nuage - VERSION PHYSIQUE AMÉLIORÉE
 interface Cloud {

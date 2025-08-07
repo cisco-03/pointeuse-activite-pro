@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import * as SunCalc from 'suncalc';
 import DynamicBackground from './Components/Background/DynamicBackground';
 import LoginBackground from './Components/Background/LoginBackground';
 import BackgroundInfo from './Components/UI/BackgroundInfo';
@@ -7,7 +8,7 @@ import SlideFooter from './Components/UI/SlideFooter';
 import AmbientSoundManager from './Components/Audio/AmbientSoundManager';
 
 import { TimeProvider, useTime } from './Components/Context/TimeContext';
-import { LocationProvider } from './Components/Context/LocationContext';
+import { LocationProvider, useLocation } from './Components/Context/LocationContext';
 import { auth, db, googleProvider } from './firebase';
 import {
   onAuthStateChanged,
@@ -21,6 +22,7 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
+  arrayRemove,
   collection,
   addDoc,
   query,
@@ -511,10 +513,25 @@ const useFirestore = (userId: string | undefined) => {
 
     const fetchAgencies = useCallback(async () => {
         if (!userId) return;
-        const userDocRef = doc(db, "users", userId);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            setAgencies(userDoc.data().agencies || []);
+
+        // 🔐 CISCO: Vérification de l'authentification Firebase avant la requête
+        if (!auth.currentUser) {
+            console.log('⏳ Utilisateur non encore authentifié pour les agences, attente...');
+            return;
+        }
+
+        try {
+            const userDocRef = doc(db, "users", userId);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                setAgencies(userDoc.data().agencies || []);
+            }
+        } catch (error: any) {
+            console.error("❌ Erreur lors du chargement des agences:", error);
+            if (error.code === 'permission-denied') {
+                console.log('🔒 Permissions insuffisantes pour les agences');
+                console.log('🔍 État d\'authentification:', auth.currentUser ? 'Connecté' : 'Non connecté');
+            }
         }
     }, [userId]);
 
@@ -550,13 +567,27 @@ const useFirestore = (userId: string | undefined) => {
     };
     
     const saveSession = async (session: Omit<Session, 'id'>) => {
-        if (!userId) return;
+        if (!userId) {
+            console.error("❌ Impossible de sauvegarder - userId manquant");
+            return;
+        }
+
+        console.log('💾 Tentative de sauvegarde session:', {
+            userId: session.userId,
+            agencyName: session.agencyName,
+            duration: session.totalDurationSeconds,
+            logsCount: session.logs.length
+        });
+
         try {
             const sessionsColRef = collection(db, 'sessions');
-            await addDoc(sessionsColRef, session);
-            fetchHistory();
+            const docRef = await addDoc(sessionsColRef, session);
+            console.log('✅ Session sauvegardée avec ID:', docRef.id);
+
+            // Recharger l'historique pour voir la nouvelle session
+            await fetchHistory();
         } catch (error) {
-            console.error("Error saving session:", error);
+            console.error("❌ Erreur lors de la sauvegarde de la session:", error);
         }
     };
 
@@ -594,6 +625,12 @@ const useFirestore = (userId: string | undefined) => {
     const fetchHistory = useCallback(async () => {
         if (!userId) return;
 
+        // 🔐 CISCO: Vérification de l'authentification Firebase avant la requête
+        if (!auth.currentUser) {
+            console.log('⏳ Utilisateur non encore authentifié, attente...');
+            return;
+        }
+
         console.log('📚 Chargement de l\'historique...');
 
         // D'abord, archiver les anciennes sessions (90+ jours)
@@ -613,6 +650,16 @@ const useFirestore = (userId: string | undefined) => {
             console.log(`✅ ${sessions.length} sessions chargées dans l'historique`);
         } catch (error: any) {
             console.error("❌ Error fetching history:", error);
+
+            // Gestion spécifique des erreurs Firebase
+            if (error.code === 'permission-denied') {
+                console.log('🔒 Permissions Firebase insuffisantes. Vérifiez les règles de sécurité.');
+                console.log('🔍 État d\'authentification:', auth.currentUser ? 'Connecté' : 'Non connecté');
+                console.log('🆔 User ID:', userId);
+                // Afficher un message d'erreur moins technique à l'utilisateur
+                setHistory([]);
+                return;
+            }
 
             // Si c'est une erreur d'index manquant, afficher un message informatif
             if (error.code === 'failed-precondition' && error.message.includes('index')) {
@@ -650,10 +697,185 @@ const useFirestore = (userId: string | undefined) => {
         }
     }, [userId]);
 
+    // Nouvelle fonction pour détecter les sessions anciennes (90+ jours)
+    const getOldSessions = useCallback(() => {
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        return history.filter(session => {
+            const sessionDate = session.startTime.toDate();
+            return sessionDate < ninetyDaysAgo;
+        });
+    }, [history]);
+
+    // Fonctions d'export multi-format
+    const exportToJSON = (sessions: Session[], filename: string) => {
+        const dataToExport = sessions.map(session => ({
+            id: session.id,
+            userId: session.userId,
+            agencyId: session.agencyId,
+            agencyName: session.agencyName,
+            startTime: session.startTime.toDate().toISOString(),
+            endTime: session.endTime?.toDate().toISOString() || null,
+            totalDurationSeconds: session.totalDurationSeconds,
+            logs: session.logs.map(log => ({
+                timestamp: log.timestamp.toDate().toISOString(),
+                note: log.note
+            }))
+        }));
+
+        const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportToCSV = (sessions: Session[], filename: string) => {
+        const headers = ['Date', 'Agence', 'Durée (secondes)', 'Durée (formatée)', 'Nombre de logs', 'Premier log', 'Dernier log'];
+        const csvContent = [
+            headers.join(','),
+            ...sessions.map(session => [
+                `"${formatDate(session.startTime, 'fr')}"`,
+                `"${session.agencyName}"`,
+                session.totalDurationSeconds,
+                `"${formatTime(session.totalDurationSeconds)}"`,
+                session.logs.length,
+                `"${session.logs[0]?.note || ''}"`,
+                `"${session.logs[session.logs.length - 1]?.note || ''}"`
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportToTXT = (sessions: Session[], filename: string) => {
+        let content = `Sessions archivées - Export du ${new Date().toLocaleDateString('fr-FR')}\n`;
+        content += `==========================================\n\n`;
+
+        sessions.forEach((session, index) => {
+            content += `Session ${index + 1}\n`;
+            content += `Date: ${formatDate(session.startTime, 'fr')}\n`;
+            content += `Agence: ${session.agencyName}\n`;
+            content += `Durée: ${formatTime(session.totalDurationSeconds)}\n`;
+            content += `Logs (${session.logs.length}):\n`;
+            session.logs.forEach(log => {
+                content += `  - [${formatTimestamp(log.timestamp, 'fr')}] ${log.note}\n`;
+            });
+            content += `\n------------------\n\n`;
+        });
+
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportToPDF = (sessions: Session[], filename: string) => {
+        // Pour le PDF, on va créer un contenu HTML et utiliser window.print()
+        const printContent = `
+            <html>
+            <head>
+                <title>Sessions archivées</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { color: #0D9488; border-bottom: 2px solid #0D9488; }
+                    .session { margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; }
+                    .session-header { font-weight: bold; background: #f5f5f5; padding: 10px; margin: -15px -15px 10px -15px; }
+                    .log { margin-left: 20px; margin-bottom: 5px; }
+                    .timestamp { color: #666; font-size: 0.9em; }
+                </style>
+            </head>
+            <body>
+                <h1>Sessions archivées - Export du ${new Date().toLocaleDateString('fr-FR')}</h1>
+                ${sessions.map((session, index) => `
+                    <div class="session">
+                        <div class="session-header">
+                            Session ${index + 1} - ${formatDate(session.startTime, 'fr')}
+                        </div>
+                        <p><strong>Agence:</strong> ${session.agencyName}</p>
+                        <p><strong>Durée:</strong> ${formatTime(session.totalDurationSeconds)}</p>
+                        <p><strong>Logs (${session.logs.length}):</strong></p>
+                        ${session.logs.map(log => `
+                            <div class="log">
+                                <span class="timestamp">[${formatTimestamp(log.timestamp, 'fr')}]</span> ${log.note}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+    };
+
+    // Fonction pour supprimer les sessions archivées de Firebase
+    const deleteArchivedSessions = async (sessionsToDelete: Session[]) => {
+        if (!userId) return false;
+
+        try {
+            console.log(`🗑️ Suppression de ${sessionsToDelete.length} sessions archivées...`);
+
+            const deletePromises = sessionsToDelete.map(session => {
+                if (session.id) {
+                    const sessionDocRef = doc(db, 'sessions', session.id);
+                    return deleteDoc(sessionDocRef);
+                }
+                return Promise.resolve();
+            });
+
+            await Promise.all(deletePromises);
+
+            // Mettre à jour l'historique local
+            setHistory(prev => prev.filter(session =>
+                !sessionsToDelete.some(deleted => deleted.id === session.id)
+            ));
+
+            console.log(`✅ ${sessionsToDelete.length} sessions supprimées avec succès`);
+            return true;
+
+        } catch (error) {
+            console.error("❌ Erreur lors de la suppression des sessions:", error);
+            return false;
+        }
+    };
+
     useEffect(() => {
         if(userId) {
-            fetchAgencies();
-            fetchHistory();
+            // 🔐 CISCO: Délai pour s'assurer que l'authentification Firebase est complète
+            const timer = setTimeout(() => {
+                fetchAgencies();
+                fetchHistory();
+            }, 500); // 500ms de délai pour laisser l'authentification se stabiliser
+
+            return () => clearTimeout(timer);
         } else {
             setAgencies([]);
             setHistory([]);
@@ -661,7 +883,23 @@ const useFirestore = (userId: string | undefined) => {
         }
     }, [userId, fetchAgencies, fetchHistory]);
 
-    return { agencies, addAgency, deleteAgency, history, archives, saveSession, fetchHistory, clearHistory, fetchArchives };
+    return {
+        agencies,
+        addAgency,
+        deleteAgency,
+        history,
+        archives,
+        saveSession,
+        fetchHistory,
+        clearHistory,
+        fetchArchives,
+        getOldSessions,
+        exportToJSON,
+        exportToCSV,
+        exportToTXT,
+        exportToPDF,
+        deleteArchivedSessions
+    };
 };
 
 
@@ -964,10 +1202,12 @@ const Header: React.FC<{
     onShowAgencySelector: () => void;
     onShowHistory: () => void;
     onShowArchives: () => void;
+    onShowArchiveManager: () => void;
     showAgencySelector: boolean;
     showHistory: boolean;
     showArchives: boolean;
-}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, showAgencySelector, showHistory, showArchives }) => {
+    showArchiveManager: boolean;
+}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, onShowArchiveManager, showAgencySelector, showHistory, showArchives, showArchiveManager }) => {
     return (
         <header className="bg-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 print:hidden" style={{ position: 'relative', zIndex: 20 }}>
             <h1 className="text-lg sm:text-xl font-bold text-teal-500 text-center sm:text-left">{t.loginTitle as string}</h1>
@@ -1004,6 +1244,17 @@ const Header: React.FC<{
                     title={showArchives ? `Fermer ${t.showArchives as string}` : `Ouvrir ${t.showArchives as string}`}
                 >
                     <span className="hidden sm:inline">{showArchives ? '📦 ' : '📦 '}</span>{t.showArchives as string}
+                </button>
+                <button
+                    onClick={onShowArchiveManager}
+                    className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                        showArchiveManager
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                    }`}
+                    title={showArchiveManager ? 'Fermer Gestionnaire Export' : 'Ouvrir Gestionnaire Export'}
+                >
+                    <span className="hidden sm:inline">{showArchiveManager ? '📤 ' : '📤 '}</span>Export
                 </button>
                 <button
                     onClick={onShowHelp}
@@ -1168,6 +1419,208 @@ const RandomCheckModal: React.FC<{ t: Translations, onConfirm: (note: string) =>
     );
 };
 
+// Nouveau composant pour la gestion des archives
+const ArchiveManagerPanel: React.FC<{
+    oldSessions: Session[],
+    onExportJSON: (sessions: Session[], filename: string) => void,
+    onExportCSV: (sessions: Session[], filename: string) => void,
+    onExportTXT: (sessions: Session[], filename: string) => void,
+    onExportPDF: (sessions: Session[], filename: string) => void,
+    onDeleteSessions: (sessions: Session[]) => Promise<boolean>,
+    lang: Lang,
+    t: Translations
+}> = ({ oldSessions, onExportJSON, onExportCSV, onExportTXT, onExportPDF, onDeleteSessions, lang, t }) => {
+    const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+    const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleSelectAll = () => {
+        if (selectedSessions.length === oldSessions.length) {
+            setSelectedSessions([]);
+        } else {
+            setSelectedSessions(oldSessions.map(s => s.id!));
+        }
+    };
+
+    const handleSessionToggle = (sessionId: string) => {
+        setSelectedSessions(prev =>
+            prev.includes(sessionId)
+                ? prev.filter(id => id !== sessionId)
+                : [...prev, sessionId]
+        );
+    };
+
+    const getSelectedSessionsData = () => {
+        return oldSessions.filter(session => selectedSessions.includes(session.id!));
+    };
+
+    const handleExport = async (format: 'json' | 'csv' | 'txt' | 'pdf') => {
+        const sessionsToExport = getSelectedSessionsData();
+        if (sessionsToExport.length === 0) return;
+
+        setIsExporting(true);
+        const filename = `archives_${new Date().toISOString().split('T')[0]}`;
+
+        try {
+            switch (format) {
+                case 'json':
+                    onExportJSON(sessionsToExport, filename);
+                    break;
+                case 'csv':
+                    onExportCSV(sessionsToExport, filename);
+                    break;
+                case 'txt':
+                    onExportTXT(sessionsToExport, filename);
+                    break;
+                case 'pdf':
+                    onExportPDF(sessionsToExport, filename);
+                    break;
+            }
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        const sessionsToDelete = getSelectedSessionsData();
+        const success = await onDeleteSessions(sessionsToDelete);
+
+        if (success) {
+            setSelectedSessions([]);
+            setShowConfirmDelete(false);
+        }
+    };
+
+    if (oldSessions.length === 0) {
+        return (
+            <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700">
+                <h2 className="text-xl font-semibold mb-4">📤 Export & Archivage</h2>
+                <p className="text-gray-400 text-center py-8">
+                    Aucune session ancienne (90+ jours) trouvée.
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">📤 Export & Archivage</h2>
+                <div className="text-sm text-gray-400">
+                    {oldSessions.length} session{oldSessions.length > 1 ? 's' : ''} ancienne{oldSessions.length > 1 ? 's' : ''} (90+ jours)
+                </div>
+            </div>
+
+            {/* Contrôles de sélection */}
+            <div className="mb-4 flex items-center gap-4">
+                <button
+                    onClick={handleSelectAll}
+                    className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
+                >
+                    {selectedSessions.length === oldSessions.length ? 'Désélectionner tout' : 'Sélectionner tout'}
+                </button>
+                <span className="text-sm text-gray-400">
+                    {selectedSessions.length} session{selectedSessions.length > 1 ? 's' : ''} sélectionnée{selectedSessions.length > 1 ? 's' : ''}
+                </span>
+            </div>
+
+            {/* Boutons d'export */}
+            {selectedSessions.length > 0 && (
+                <div className="mb-6 p-4 bg-gray-700/50 rounded-lg">
+                    <h3 className="text-sm font-medium mb-3">📤 Exporter les sessions sélectionnées :</h3>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => handleExport('json')}
+                            disabled={isExporting}
+                            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm disabled:opacity-50"
+                        >
+                            📄 JSON
+                        </button>
+                        <button
+                            onClick={() => handleExport('csv')}
+                            disabled={isExporting}
+                            className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm disabled:opacity-50"
+                        >
+                            📊 CSV
+                        </button>
+                        <button
+                            onClick={() => handleExport('txt')}
+                            disabled={isExporting}
+                            className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm disabled:opacity-50"
+                        >
+                            📝 TXT
+                        </button>
+                        <button
+                            onClick={() => handleExport('pdf')}
+                            disabled={isExporting}
+                            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm disabled:opacity-50"
+                        >
+                            📋 PDF
+                        </button>
+                        <button
+                            onClick={() => setShowConfirmDelete(true)}
+                            disabled={isExporting}
+                            className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-sm disabled:opacity-50 ml-4"
+                        >
+                            🗑️ Supprimer après export
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Liste des sessions */}
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+                {oldSessions.map(session => (
+                    <div key={session.id} className="flex items-center gap-3 p-3 bg-gray-700/50 rounded">
+                        <input
+                            type="checkbox"
+                            checked={selectedSessions.includes(session.id!)}
+                            onChange={() => handleSessionToggle(session.id!)}
+                            className="w-4 h-4 text-teal-600 bg-gray-700 border-gray-600 rounded focus:ring-teal-500"
+                        />
+                        <div className="flex-1">
+                            <div className="text-sm font-medium">
+                                {formatDate(session.startTime, lang)} - {session.agencyName}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                                Durée: {formatTime(session.totalDurationSeconds)} • {session.logs.length} log{session.logs.length > 1 ? 's' : ''}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Modal de confirmation de suppression */}
+            {showConfirmDelete && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-lg max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">⚠️ Confirmer la suppression</h3>
+                        <p className="text-gray-300 mb-6">
+                            Êtes-vous sûr de vouloir supprimer {selectedSessions.length} session{selectedSessions.length > 1 ? 's' : ''} ?
+                            <br /><br />
+                            <strong>Cette action est irréversible.</strong> Assurez-vous d'avoir exporté vos données avant de continuer.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowConfirmDelete(false)}
+                                className="flex-1 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                className="flex-1 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
+                            >
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ArchivesPanel: React.FC<{ archives: Session[], lang: Lang, t: Translations }> = ({ archives, lang, t }) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -1265,14 +1718,28 @@ const ArchivesPanel: React.FC<{ archives: Session[], lang: Lang, t: Translations
 };
 
 
-// ========= MAIN APP COMPONENT =========
-export default function App() {
-    const { user, isLoading, login, logout } = useAuth();
-    const [lang, setLang] = useState<Lang>('fr');
-    const t = useMemo(() => translations[lang], [lang]);
-    
-    const { agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives } = useFirestore(user?.uid);
-
+// ========= INTERNAL APP COMPONENT WITH LOCATION CONTEXT =========
+const AppWithLocation: React.FC<{
+    user: AppUser;
+    lang: Lang;
+    setLang: (lang: Lang) => void;
+    t: any;
+    agencies: Agency[];
+    addAgency: (name: string) => Promise<Agency | null>;
+    deleteAgency: (agency: Agency) => Promise<boolean>;
+    history: Session[];
+    archives: Session[];
+    saveSession: (session: Session) => Promise<void>;
+    clearHistory: () => Promise<void>;
+    fetchArchives: () => Promise<void>;
+    getOldSessions: () => Session[];
+    exportToJSON: (sessions: Session[], filename: string) => void;
+    exportToCSV: (sessions: Session[], filename: string) => void;
+    exportToTXT: (sessions: Session[], filename: string) => void;
+    exportToPDF: (sessions: Session[], filename: string) => void;
+    deleteArchivedSessions: (sessions: Session[]) => Promise<boolean>;
+    logout: () => Promise<void>;
+}> = ({ user, lang, setLang, t, agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives, getOldSessions, exportToJSON, exportToCSV, exportToTXT, exportToPDF, deleteArchivedSessions, logout }) => {
     const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
     const [newAgencyName, setNewAgencyName] = useState('');
     const [showAddAgency, setShowAddAgency] = useState(false);
@@ -1281,6 +1748,7 @@ export default function App() {
     const [showAgencySelector, setShowAgencySelector] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
     const [showArchives, setShowArchives] = useState(false);
+    const [showArchiveManager, setShowArchiveManager] = useState(false);
     
     const [firstTask, setFirstTask] = useState('');
     const [currentNote, setCurrentNote] = useState('');
@@ -1298,6 +1766,9 @@ export default function App() {
     const [timerMode, setTimerMode] = useState<'stopwatch' | 'countdown'>('stopwatch');
     const [countdownDuration, setCountdownDuration] = useState(5 * 60 * 1000); // 5 minutes par défaut
     const [showCountdownFinished, setShowCountdownFinished] = useState(false);
+
+    // État pour le mode libre (nouveau)
+    const [freeMode, setFreeMode] = useState(false);
 
     // États pour le système audio d'ambiance
     const [audioEnabled, setAudioEnabled] = useState(false); // 🔧 CISCO: Audio désactivé par défaut - activation manuelle
@@ -1368,20 +1839,45 @@ export default function App() {
 
 
     const handleStop = (elapsedMilliseconds: number) => {
-        if (!user || !sessionStartTime || !selectedAgencyId) return;
+        if (!user || !sessionStartTime) return;
 
-        const selectedAgency = agencies.find(a => a.id === selectedAgencyId);
+        // En mode libre, si pas d'agence sélectionnée, utiliser l'agence "Libre"
+        let agencyIdToUse = selectedAgencyId;
+        let agencyNameToUse = 'Unknown';
+
+        if (!selectedAgencyId && freeMode) {
+            // Chercher l'agence "Libre" ou utiliser une valeur par défaut
+            const freeAgency = agencies.find(a => a.name.toLowerCase() === 'libre');
+            if (freeAgency) {
+                agencyIdToUse = freeAgency.id;
+                agencyNameToUse = freeAgency.name;
+            } else {
+                // Créer une session avec agence par défaut
+                agencyIdToUse = 'libre-default';
+                agencyNameToUse = 'Libre';
+            }
+        } else if (selectedAgencyId) {
+            const selectedAgency = agencies.find(a => a.id === selectedAgencyId);
+            agencyNameToUse = selectedAgency?.name || 'Unknown';
+        } else {
+            // Mode normal sans agence sélectionnée - ne pas sauvegarder
+            console.log('❌ Pas d\'agence sélectionnée en mode normal - session non sauvegardée');
+            return;
+        }
+
         const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000); // Conversion pour la sauvegarde
 
         const sessionData: Omit<Session, 'id'> = {
             userId: user.uid,
-            agencyId: selectedAgencyId,
-            agencyName: selectedAgency?.name || 'Unknown',
+            agencyId: agencyIdToUse,
+            agencyName: agencyNameToUse,
             startTime: sessionStartTime,
             endTime: Timestamp.now(),
             totalDurationSeconds: elapsedSeconds,
             logs: currentLogs,
         };
+
+        console.log('💾 Sauvegarde de la session:', sessionData);
         saveSession(sessionData);
 
         // Reset state
@@ -1560,10 +2056,32 @@ export default function App() {
     }, [forcePause]);
 
     const handleStart = () => {
-        if (!firstTask.trim() || !selectedAgencyId) return;
+        // Mode libre : permettre le démarrage sans validation stricte
+        if (!freeMode && (!firstTask.trim() || !selectedAgencyId)) return;
+
         const startTime = Timestamp.now();
         setSessionStartTime(startTime);
-        const firstLog: LogEntry = { timestamp: startTime, note: firstTask };
+
+        // Déterminer les valeurs à utiliser selon le mode
+        const taskToLog = freeMode && !firstTask.trim() ? 'Session libre' : firstTask;
+
+        // Si mode libre et pas d'agence sélectionnée, créer/utiliser l'agence "Libre"
+        if (freeMode && !selectedAgencyId) {
+            // Vérifier si l'agence "Libre" existe déjà
+            const freeAgency = agencies.find(a => a.name.toLowerCase() === 'libre');
+            if (!freeAgency) {
+                // Créer l'agence "Libre" automatiquement
+                addAgency('Libre').then(newAgency => {
+                    if (newAgency) {
+                        setSelectedAgencyId(newAgency.id);
+                    }
+                });
+            } else {
+                setSelectedAgencyId(freeAgency.id);
+            }
+        }
+
+        const firstLog: LogEntry = { timestamp: startTime, note: taskToLog };
         setCurrentLogs([firstLog]);
 
         if (timerMode === 'countdown') {
@@ -1589,7 +2107,7 @@ export default function App() {
             setSelectedAgencyId(newAgency.id);
             setNewAgencyName('');
             setShowAddAgency(false);
-        }
+               }
     }
 
     const handleDeleteAgency = async (agency: Agency) => {
@@ -1630,28 +2148,19 @@ export default function App() {
         // Timer is already paused by `forcePause` when modal opens
     };
 
-    if (isLoading) {
-        return <div className="flex items-center justify-center min-h-screen">{t.loading as string}...</div>;
-    }
-
-    if (!user) {
-        return <LoginScreen onLogin={login} lang={lang} />;
-    }
-
-    const canStart = firstTask.trim() !== '' && selectedAgencyId !== '';
+    const canStart = freeMode || (firstTask.trim() !== '' && selectedAgencyId !== '');
 
     return (
-        <LocationProvider>
-            <TimeProvider>
-                <DynamicBackground skyMode={currentBackgroundMode}>
-                    <div className="font-sans">
+        <TimeProvider>
+            <DynamicBackground skyMode={currentBackgroundMode}>
+                <div className="font-sans">
 
-                        <Header
-                            user={user}
-                            onLogout={logout}
-                            lang={lang}
-                            setLang={setLang}
-                            t={t}
+                    <Header
+                        user={user}
+                        onLogout={logout}
+                        lang={lang}
+                        setLang={setLang}
+                        t={t}
                             onShowHelp={() => setShowHelp(true)}
                             onShowAgencySelector={() => {
                                 setShowAgencySelector(!showAgencySelector);
@@ -1665,9 +2174,13 @@ export default function App() {
                                     fetchArchives(); // Charger les archives quand on ouvre la section
                                 }
                             }}
+                            onShowArchiveManager={() => {
+                                setShowArchiveManager(!showArchiveManager);
+                            }}
                             showAgencySelector={showAgencySelector}
                             showHistory={showHistory}
                             showArchives={showArchives}
+                            showArchiveManager={showArchiveManager}
                         />
 
             <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto">
@@ -1677,23 +2190,44 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                         {/* Left: Config */}
                         <div>
+                            {/* Toggle Mode Libre */}
+                            <div className="mb-4 flex items-center gap-3">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={freeMode}
+                                        onChange={(e) => setFreeMode(e.target.checked)}
+                                        disabled={status !== 'stopped'}
+                                        className="w-4 h-4 text-teal-600 bg-gray-700 border-gray-600 rounded focus:ring-teal-500 focus:ring-2 disabled:opacity-50"
+                                    />
+                                    <span className="text-sm font-medium text-gray-300">
+                                        🆓 Mode libre
+                                    </span>
+                                </label>
+                                {freeMode && (
+                                    <span className="text-xs text-teal-400 bg-teal-900/30 px-2 py-1 rounded">
+                                        Chronomètre sans contraintes
+                                    </span>
+                                )}
+                            </div>
+
                            <label htmlFor="agency-select" className="block text-sm font-medium text-gray-400 mb-2">{t.selectAgency as string}</label>
                             <div className="flex space-x-2">
                                 <select
                                     id="agency-select"
                                     value={selectedAgencyId}
                                     onChange={(e) => setSelectedAgencyId(e.target.value)}
-                                    disabled={status !== 'stopped'}
-                                    className="w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:bg-gray-700/50 disabled:cursor-not-allowed"
+                                    disabled={status !== 'stopped' || freeMode}
+                                    className={`w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:bg-gray-700/50 disabled:cursor-not-allowed ${freeMode ? 'opacity-50' : ''}`}
                                 >
-                                    <option value="" disabled>{t.selectAgency as string}</option>
+                                    <option value="" disabled>{freeMode ? 'Mode libre activé' : t.selectAgency as string}</option>
                                     {agencies.map(agency => <option key={agency.id} value={agency.id}>{agency.name}</option>)}
                                 </select>
                                 <button
                                     onClick={() => setShowAddAgency(!showAddAgency)}
-                                    disabled={status !== 'stopped'}
+                                    disabled={status !== 'stopped' || freeMode}
                                     className="p-3 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50"
-                                    title={t.addAgency as string}
+                                    title={freeMode ? 'Désactivé en mode libre' : t.addAgency as string}
                                 >
                                     <PlusIcon/>
                                 </button>
@@ -1703,9 +2237,9 @@ export default function App() {
                                             const selectedAgency = agencies.find(a => a.id === selectedAgencyId);
                                             if (selectedAgency) handleDeleteAgency(selectedAgency);
                                         }}
-                                        disabled={status !== 'stopped'}
+                                        disabled={status !== 'stopped' || freeMode}
                                         className="p-3 bg-red-700 hover:bg-red-600 rounded-md transition-colors disabled:opacity-50"
-                                        title={t.deleteAgency as string}
+                                        title={freeMode ? 'Désactivé en mode libre' : t.deleteAgency as string}
                                     >
                                         🗑️
                                     </button>
@@ -1726,9 +2260,9 @@ export default function App() {
                             <textarea
                                 value={firstTask}
                                 onChange={(e) => setFirstTask(e.target.value)}
-                                placeholder={t.firstTaskPrompt as string}
+                                placeholder={freeMode ? "Tâche optionnelle (laissez vide pour 'Session libre')" : t.firstTaskPrompt as string}
                                 disabled={status !== 'stopped'}
-                                className="mt-4 w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:bg-gray-700/50 disabled:cursor-not-allowed"
+                                className={`mt-4 w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:bg-gray-700/50 disabled:cursor-not-allowed ${freeMode ? 'border-teal-500/50' : ''}`}
                                 rows={3}
                             />
                         </div>
@@ -1830,6 +2364,22 @@ export default function App() {
                 {showArchives && (
                 <div className="printable-area">
                     <ArchivesPanel archives={archives} lang={lang} t={t} />
+                </div>
+                )}
+
+                {/* Gestionnaire d'archives - Affiché seulement si showArchiveManager est true */}
+                {showArchiveManager && (
+                <div className="printable-area">
+                    <ArchiveManagerPanel
+                        oldSessions={getOldSessions()}
+                        onExportJSON={exportToJSON}
+                        onExportCSV={exportToCSV}
+                        onExportTXT={exportToTXT}
+                        onExportPDF={exportToPDF}
+                        onDeleteSessions={deleteArchivedSessions}
+                        lang={lang}
+                        t={t}
+                    />
                 </div>
                 )}
             </main>
@@ -2028,6 +2578,63 @@ export default function App() {
                 </div>
             </DynamicBackground>
         </TimeProvider>
+    );
+};
+
+// ========= MAIN APP COMPONENT =========
+export default function App() {
+    const { user, isLoading, login, logout } = useAuth();
+    const [lang, setLang] = useState<Lang>('fr');
+    const t = useMemo(() => translations[lang], [lang]);
+    
+    const {
+        agencies,
+        addAgency,
+        deleteAgency,
+        history,
+        archives,
+        saveSession,
+        clearHistory,
+        fetchArchives,
+        getOldSessions,
+        exportToJSON,
+        exportToCSV,
+        exportToTXT,
+        exportToPDF,
+        deleteArchivedSessions
+    } = useFirestore(user?.uid);
+
+    if (isLoading) {
+        return <div className="flex items-center justify-center min-h-screen">{t.loading as string}...</div>;
+    }
+
+    if (!user) {
+        return <LoginScreen onLogin={login} lang={lang} />;
+    }
+
+    return (
+        <LocationProvider>
+            <AppWithLocation
+                user={user}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+                agencies={agencies}
+                addAgency={addAgency}
+                deleteAgency={deleteAgency}
+                history={history}
+                archives={archives}
+                saveSession={saveSession}
+                clearHistory={clearHistory}
+                fetchArchives={fetchArchives}
+                getOldSessions={getOldSessions}
+                exportToJSON={exportToJSON}
+                exportToCSV={exportToCSV}
+                exportToTXT={exportToTXT}
+                exportToPDF={exportToPDF}
+                deleteArchivedSessions={deleteArchivedSessions}
+                logout={logout}
+            />
         </LocationProvider>
     );
 }

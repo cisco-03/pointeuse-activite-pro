@@ -1,7 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as SunCalc from 'suncalc';
-import { useTime } from '../Context/TimeContext';
-import { useLocation } from '../Context/LocationContext';
+import React, { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 import FixedStars from './FixedStars';
 import ShootingStars from './ShootingStars';
 
@@ -22,70 +20,13 @@ interface AstronomicalLayerProps {
 }
 
 const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night' }) => {
-  const { getCurrentTime } = useTime();
-  const { locationReady } = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const moonRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<Star[]>([]);
   const starsContainerRef = useRef<HTMLDivElement | null>(null);
-  
-  // État pour la lune
-  const [moonOpacity, setMoonOpacity] = useState(0);
-  const [moonPhase, setMoonPhase] = useState(0);
 
-  // Calcul de la phase lunaire
-  const calculateMoonPhase = () => {
-    const now = getCurrentTime();
-    const moonIllumination = SunCalc.getMoonIllumination(now);
-    return moonIllumination.fraction; // 0 = nouvelle lune, 1 = pleine lune
-  };
 
-  // Calcul de l'opacité de la lune selon l'heure
-  const calculateMoonOpacity = (mode: string): number => {
-    switch (mode) {
-      case 'night':
-        return 0.9; // Très visible la nuit
-      case 'dusk':
-        return 0.6; // Visible au crépuscule
-      case 'dawn':
-        return 0.3; // Faiblement visible à l'aube
-      default:
-        return 0; // Invisible pendant la journée
-    }
-  };
 
-  // Style de la lune avec phases
-  const getMoonStyle = () => {
-    const phase = moonPhase;
-    const size = 40; // Taille de la lune en pixels
-    
-    // Calculer l'ombre pour simuler les phases
-    const shadowOffset = Math.cos(phase * Math.PI * 2) * (size / 2);
-    
-    return {
-      width: `${size}px`,
-      height: `${size}px`,
-      background: 'radial-gradient(circle, #f5f5dc 30%, #e6d8b5 70%)',
-      borderRadius: '50%',
-      boxShadow: `inset ${shadowOffset}px 0 0 rgba(0, 0, 0, 0.3), 0 0 10px rgba(245, 245, 220, 0.5)`,
-    };
-  };
 
-  // Mettre à jour la lune
-  const updateMoon = (mode: string, duration: number = 15.0) => {
-    if (!locationReady || !moonRef.current) return;
-    
-    const newMoonOpacity = calculateMoonOpacity(mode);
-    const newMoonPhase = calculateMoonPhase();
-    
-    setMoonPhase(newMoonPhase);
-    
-    gsap.to(moonRef.current, {
-        opacity: newMoonOpacity,
-        duration: duration,
-        ease: "power1.inOut"
-    });
-  };
 
   // Générer les étoiles une seule fois
   const generateStars = (): Star[] => {
@@ -224,15 +165,7 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night'
   useEffect(() => {
     const transitionDuration = 15.0;
     updateStarsVisibility(skyMode, transitionDuration);
-    updateMoon(skyMode, transitionDuration);
   }, [skyMode]);
-
-  // Mise à jour quand la géolocalisation est prête
-  useEffect(() => {
-    if (locationReady) {
-      updateMoon(skyMode, 0); // Update instantly if location becomes available
-    }
-  }, [locationReady]);
 
   return (
     <div
@@ -247,19 +180,6 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night'
       
       {/* Étoiles filantes */}
       <ShootingStars skyMode={skyMode} />
-      
-      {/* Lune */}
-      <div
-        ref={moonRef}
-        className="absolute pointer-events-none"
-        style={{
-          top: '15%',
-          right: '15%',
-          opacity: moonOpacity,
-          zIndex: 2,
-          ...getMoonStyle()
-        }}
-      />
     </div>
   );
 };

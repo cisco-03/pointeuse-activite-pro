@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import AstronomicalLayer from './AstronomicalLayer';
 import DiurnalLayer from './DiurnalLayer';
 import SunriseAnimation, { SunriseAnimationRef } from './SunriseAnimation';
 import { useLocation } from '../Context/LocationContext';
+import { useTime } from '../Context/TimeContext';
 import * as SunCalc from 'suncalc';
 import './BackgroundController'; // 🔧 IMPORT: Contrôleur manuel
 
@@ -117,10 +118,22 @@ interface DynamicBackgroundProps {
   skyMode: string;
 }
 
+
+
 const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode }) => {
   const { userLocation, locationReady } = useLocation();
+  const { getCurrentTime } = useTime();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionPhase, setTransitionPhase] = useState<string>('night');
+
+  
   const currentModeRef = useRef(skyMode);
+  const backgroundRef = useRef<HTMLDivElement>(null);
+  const gradientRef = useRef<HTMLDivElement>(null);
+  const landscapeRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const zoomTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const sunriseAnimationRef = useRef<SunriseAnimationRef>(null);
 
   // 🔧 CISCO: Background UNIQUE - Background.png seulement (simplification)
   const selectedBackground = '/Background.png'; // Background unique pour simplifier
@@ -130,16 +143,49 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     return 'center 75%'; // Position optimale pour Background.png
   };
   
-  // Références pour l'animation
-  const backgroundRef = useRef<HTMLDivElement>(null);
-  const gradientRef = useRef<HTMLDivElement>(null);
-  const landscapeRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const zoomTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  // Fonction pour déterminer le mode basé sur l'heure
+  const getModeForTime = useCallback((date: Date): string => {
+    if (locationReady && userLocation) {
+      const sunTimes = SunCalc.getTimes(date, userLocation.lat, userLocation.lon);
+      const currentTime = date.getTime();
+      
+      if (currentTime < sunTimes.dawn.getTime()) return 'night';
+      if (currentTime < sunTimes.sunrise.getTime()) return 'dawn';
+      if (currentTime < sunTimes.sunrise.getTime() + (2 * 60 * 60 * 1000)) return 'sunrise';
+      if (currentTime < sunTimes.solarNoon.getTime() - (1 * 60 * 60 * 1000)) return 'morning';
+      if (currentTime < sunTimes.solarNoon.getTime() + (3 * 60 * 60 * 1000)) return 'midday';
+      if (currentTime < sunTimes.sunset.getTime() - (1 * 60 * 60 * 1000)) return 'afternoon';
+      if (currentTime < sunTimes.sunset.getTime()) return 'sunset';
+      if (currentTime < sunTimes.dusk.getTime()) return 'dusk';
+      return 'night';
+    } else {
+      const hour = date.getHours();
+      if (hour >= 5 && hour < 6) return 'dawn';
+      if (hour >= 6 && hour < 8) return 'sunrise';
+      if (hour >= 8 && hour < 11) return 'morning';
+      if (hour >= 11 && hour < 15) return 'midday';
+      if (hour >= 15 && hour < 18) return 'afternoon';
+      if (hour >= 18 && hour < 20) return 'sunset';
+      if (hour >= 20 && hour < 22) return 'dusk';
+      return 'night';
+    }
+  }, [locationReady, userLocation]);
 
-  // 🌅 CISCO: Référence pour l'animation de lever de soleil
-  const sunriseAnimationRef = useRef<SunriseAnimationRef>(null);
-  
+
+
+  // Fonction pour les transitions de nuages (à implémenter)
+  const applyCloudTransition = (mode: BackgroundMode, duration: number) => {
+    console.log(`☁️ Transition des nuages vers ${mode} (${duration}s)`);
+    // Implémentation à ajouter
+  };
+
+  // Fonction pour les transitions d'étoiles (à implémenter)
+  const applyStarsTransition = (mode: BackgroundMode, duration: number) => {
+    console.log(`⭐ Transition des étoiles vers ${mode} (${duration}s)`);
+    // Implémentation à ajouter
+  };
+
+
 
   // 🔧 CISCO: Changement de mode avec CROSS FADE progressif TOUJOURS
   const setBackgroundMode = (mode: BackgroundMode) => {
@@ -182,8 +228,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     }
     
     const targetBrightness = getBrightnessForMode(targetMode);
-
-    console.log(`🌊 Transition ultra douce vers: ${targetMode}`);
 
     if (timelineRef.current) {
       timelineRef.current.kill();
@@ -239,8 +283,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     }
     
     const targetBrightness = getBrightnessForMode(targetMode);
-
-    console.log(`🌉 Transition avec pont: ${transitionKey} → ${targetMode}`);
 
     if (timelineRef.current) {
       timelineRef.current.kill();
@@ -315,7 +357,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
 
 
   // 🔧 FONCTION PRINCIPALE: Transition progressive fluide entre modes
-  const updateBackground = (mode?: BackgroundMode) => {
+  const updateDynamicBackground = (mode?: BackgroundMode) => {
     if (!gradientRef.current) return;
 
     const targetMode = mode || skyMode as BackgroundMode;
@@ -388,7 +430,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     console.log('🌅 Déclenchement de l\'animation de lever de soleil depuis DynamicBackground');
 
     // CISCO: Animation maintenant disponible sur TOUS les backgrounds !
-    console.log(`🌅 Animation de lever de soleil déclenchée en mode: ${currentMode}`);
+    console.log(`🌅 Animation de lever de soleil déclenchée en mode: ${currentModeRef.current}`);
 
     // Déclencher l'animation via la référence
     if (sunriseAnimationRef.current) {
@@ -402,7 +444,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
   const triggerMorningAnimation = () => {
     console.log('🌄 Déclenchement de l\'animation du matin depuis DynamicBackground');
 
-    console.log(`🌄 Animation du matin déclenchée en mode: ${currentMode}`);
+    console.log(`🌄 Animation du matin déclenchée en mode: ${currentModeRef.current}`);
 
     // Déclencher l'animation via la référence
     if (sunriseAnimationRef.current) {
@@ -416,7 +458,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
   const triggerMiddayAnimation = () => {
     console.log('☀️ Déclenchement de l\'animation du zénith depuis DynamicBackground');
 
-    console.log(`☀️ Animation du zénith déclenchée en mode: ${currentMode}`);
+    console.log(`☀️ Animation du zénith déclenchée en mode: ${currentModeRef.current}`);
 
     // Déclencher l'animation via la référence
     if (sunriseAnimationRef.current) {
@@ -430,7 +472,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
   const triggerAfternoonAnimation = () => {
     console.log('🌅 Déclenchement de l\'animation de l\'après-midi depuis DynamicBackground');
 
-    console.log(`🌅 Animation de l\'après-midi déclenchée en mode: ${currentMode}`);
+    console.log(`🌅 Animation de l\'après-midi déclenchée en mode: ${currentModeRef.current}`);
 
     // Déclencher l'animation via la référence
     if (sunriseAnimationRef.current) {
@@ -444,7 +486,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
   const triggerSunsetAnimation = () => {
     console.log('🌇 Déclenchement de l\'animation du coucher depuis DynamicBackground');
 
-    console.log(`🌇 Animation du coucher déclenchée en mode: ${currentMode}`);
+    console.log(`🌇 Animation du coucher déclenchée en mode: ${currentModeRef.current}`);
 
     // Déclencher l'animation via la référence
     if (sunriseAnimationRef.current) {
@@ -508,7 +550,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     }
 
     createLandscapeZoomAnimation();
-    updateBackground();
+    updateDynamicBackground();
 
     return () => {
       if (timelineRef.current) timelineRef.current.kill();
@@ -520,6 +562,30 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
   useEffect(() => {
     setBackgroundMode(skyMode as BackgroundMode);
   }, [skyMode]);
+
+  // Effect pour mettre à jour l'arrière-plan automatiquement
+  useEffect(() => {
+    if (skyMode) {
+      // Mode manuel via props
+      updateDynamicBackground(skyMode as BackgroundMode);
+    } else {
+      // Mode automatique basé sur l'heure
+      const currentMode = getModeForTime(getCurrentTime());
+      updateDynamicBackground(currentMode as BackgroundMode);
+
+      // Vérifier les changements toutes les minutes
+      const interval = setInterval(() => {
+        const newMode = getModeForTime(getCurrentTime());
+        if (newMode !== currentModeRef.current) {
+          updateDynamicBackground(newMode as BackgroundMode);
+        }
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [skyMode, getCurrentTime, getModeForTime, updateDynamicBackground, transitionPhase]);
+
+
 
   return (
     <div
