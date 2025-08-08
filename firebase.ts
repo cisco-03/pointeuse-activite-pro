@@ -14,7 +14,7 @@ import { firebaseConfig } from "./firebase-config";
 // On initialise l'application et on exporte les services dont on aura besoin.
 const app: FirebaseApp = initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
+const db: Firestore = getFirestore(app, (import.meta.env as any).VITE_FIRESTORE_DB_ID);
 const analytics: Analytics = getAnalytics(app);
 const googleProvider = new GoogleAuthProvider();
 

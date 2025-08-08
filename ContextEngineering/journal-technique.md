@@ -3060,6 +3060,129 @@ const easedProgress = Math.pow(progress, 0.7); // fade-in
 
 ---
 
+## 🔧🗑️ **08/01/2025 - CORRECTION DUPLICATION SESSIONS & NETTOYAGE UI**
+
+### **PROBLÈMES RÉSOLUS**
+1. **Duplication sessions historique** : Une session enregistrée apparaissait 6 fois dans l'historique
+2. **Références obsolètes "90+ jours"** : Textes UI non adaptés au nouveau système d'archivage manuel
+
+### **SOLUTIONS IMPLÉMENTÉES**
+
+#### **Correction Duplication Sessions**
+- **Fichier :** `App.tsx`
+- **Lignes modifiées :** 597-599
+- **AVANT :** `await fetchHistory()` après chaque sauvegarde → rechargement complet historique
+- **APRÈS :** Ajout direct session à l'état local `setHistory(prev => [newSession, ...prev])`
+- **RÉSULTAT :** Plus de duplication, performance améliorée
+
+#### **Nettoyage Interface Utilisateur**
+- **Fichier :** `App.tsx`
+- **Modifications :**
+  - Ligne 150 : `"Sessions archivées (90+ jours)"` → `"Sessions archivées"`
+  - Ligne 173 : `"Archivage automatique après 90 jours"` → `"Archivage manuel des sessions"`
+  - Ligne 1628 : `"Aucune session ancienne (90+ jours) trouvée"` → `"Aucune session à archiver trouvée"`
+  - Ligne 1635 : `"sessions anciennes (90+ jours)"` → `"sessions à archiver"`
+
+#### **Nettoyage Commentaires Code**
+- **Fichier :** `App.tsx`
+- **Lignes supprimées :** 649-651 (commentaires archivage automatique obsolètes)
+- **Ligne 716 :** Commentaire mis à jour avec tag `🔧 CISCO:`
+
+### **📁 Fichiers Modifiés**
+- `App.tsx` : Fonction saveSession + traductions + commentaires
+- `ContextEngineering\journal-technique.md` : **CETTE ENTRÉE**
+
+---
+
+## 🔧📝 **08/01/2025 - CORRECTIONS MAJEURES & REFONTE TERMINOLOGIE**
+
+### **PROBLÈMES RÉSOLUS**
+
+#### **1. 🚨 CRITIQUE : Durée à zéro dans les sessions**
+- **Cause :** Incohérence entre `totalDurationSeconds` (secondes) et `formatTime()` (millisecondes)
+- **Solution :** Création de `formatTimeFromSeconds()` pour les sessions sauvegardées
+- **Fichiers :** `App.tsx` lignes 379-385 + 10 remplacements dans l'affichage
+- **Résultat :** Durées correctes (ex: 01:23:45 au lieu de 00:00:00)
+
+#### **2. 🔄 Duplication sessions archivées**
+- **Problème :** Pas de fonction d'archivage proprement dite
+- **Solution :** Création de `archiveSessions()` qui déplace de `sessions` vers `archives`
+- **Ajouté :** Bouton "📦 Archiver" avec modal de confirmation
+- **Fichiers :** `App.tsx` lignes 863-895 + interface complète
+
+#### **3. 📍 Réorganisation boutons export**
+- **Avant :** JSON/CSV/TXT/PDF dans l'historique
+- **Après :** Seulement Email/Imprimer/Vider dans l'historique
+- **Déplacé :** JSON/CSV/TXT/PDF vers section Export & Archivage
+- **Supprimé :** Fonctions d'export redondantes dans HistoryPanel
+
+#### **4. 🗑️ Suppression individuelle**
+- **Ajouté :** Bouton 🗑️ sur chaque session (historique + archives)
+- **Fonctions :** `deleteHistorySession()` et `deleteArchivedSession()`
+- **Interface :** Boutons intégrés dans chaque ligne de session
+
+#### **5. 📌 Header fixe**
+- **Modifié :** Header avec `fixed top-0 left-0 right-0 z-50`
+- **Compensé :** Padding-top `pt-32 sm:pt-36 md:pt-40` sur le main
+
+### **REFONTE TERMINOLOGIQUE : AGENCE → ACTIVITÉ**
+
+#### **Changements Traductions Françaises**
+- **Ligne 128 :** "Sélectionnez une agence" → "Sélectionnez une activité"
+- **Ligne 129 :** "Ajouter une nouvelle agence" → "Ajouter une nouvelle activité"
+- **Ligne 130 :** "Nom de l'agence" → "Nom de l'activité"
+- **Ligne 145 :** "Agences" → "Activités"
+- **Ligne 147 :** "Supprimer l'agence" → "Supprimer l'activité"
+- **Ligne 148 :** Message de confirmation adapté
+- **Ligne 156 :** "par agence" → "par activité"
+
+#### **Changements Traductions Anglaises**
+- **Ligne 250 :** "Select an agency" → "Select an activity"
+- **Ligne 251 :** "Add new agency" → "Add new activity"
+- **Ligne 252 :** "Agency name" → "Activity name"
+- **Ligne 267 :** "Agencies" → "Activities"
+- **Ligne 269 :** "Delete Agency" → "Delete Activity"
+- **Ligne 270 :** Message de confirmation adapté
+- **Ligne 360 :** "by agency" → "by activity"
+
+### **REFONTE COMPLÈTE GUIDE D'UTILISATION**
+
+#### **Version Française (lignes 158-262)**
+- **Supprimé :** Tous les astérisques Markdown
+- **Structure :** Sections claires avec séparateurs visuels
+- **Contenu enrichi :**
+  - Guide de démarrage rapide
+  - Modes de fonctionnement (Normal/Libre/Chronomètre/Compte à rebours)
+  - Fonctionnalités avancées détaillées
+  - Interface et navigation
+  - Conseils d'utilisation et organisation
+  - Support et sécurité
+
+#### **Version Anglaise (lignes 362-466)**
+- **Même structure** que la version française
+- **Traduction complète** de tous les nouveaux contenus
+- **Cohérence terminologique** avec les changements Agence→Activité
+
+### **📁 Fichiers Modifiés**
+- `App.tsx` :
+  - Corrections durée (formatTimeFromSeconds)
+  - Fonction archivage complète
+  - Suppression individuelle
+  - Header fixe + padding
+  - Terminologie Agence→Activité
+  - Guide d'utilisation complet (FR+EN)
+- `ContextEngineering\journal-technique.md` : **CETTE ENTRÉE**
+
+### **🎯 IMPACT UTILISATEUR**
+- ✅ Durées correctement affichées
+- ✅ Archivage fonctionnel
+- ✅ Interface plus intuitive (Activité vs Agence)
+- ✅ Guide d'utilisation enrichi et professionnel
+- ✅ Navigation améliorée (header fixe)
+- ✅ Contrôle granulaire (suppression individuelle)
+
+---
+
 ## 🆓📦 **07/01/2025 - MODE LIBRE & ARCHIVAGE LOCAL**
 
 ### **PROBLÈMES RÉSOLUS**
@@ -3114,4 +3237,189 @@ const easedProgress = Math.pow(progress, 0.7); // fade-in
 
 ---
 
-*Dernière mise à jour : 07/01/2025 - Version 4.7.0 - MODE LIBRE & ARCHIVAGE LOCAL COMPLETS*
+## 🔧 **CORRECTION SESSIONS ARCHIVÉES - EXPORT COMPLET** *(08/08/2025 - 17:18)*
+
+### **🚨 PROBLÈME RÉSOLU :**
+- **Section "Export et Archivage" vide** dans les sessions archivées
+- Impossible d'exporter les archives en JSON, CSV, PDF
+- Pas de sélection multiple des archives
+- Interface incohérente entre ArchiveManagerPanel et ArchivesPanel
+
+### **✅ SOLUTION IMPLÉMENTÉE :**
+
+#### **1. Modification du composant ArchivesPanel**
+- **Fichier :** `App.tsx`
+- **Lignes modifiées :** 1986-2183, 2851-2865
+- **Nouvelles props ajoutées :**
+  ```typescript
+  onExportJSON: (sessions: Session[], filename: string) => void,
+  onExportCSV: (sessions: Session[], filename: string) => void,
+  onExportTXT: (sessions: Session[], filename: string) => void,
+  onExportPDF: (sessions: Session[], filename: string) => void
+  ```
+
+#### **2. Fonctionnalités ajoutées :**
+- **Sélection multiple** : Checkboxes pour chaque archive
+- **Bouton "Tout sélectionner/désélectionner"**
+- **Export complet** : JSON, CSV, TXT, PDF (comme ArchiveManagerPanel)
+- **Compteur de sélection** : Affichage du nombre d'archives sélectionnées
+- **Export intelligent** : Si aucune sélection → export de toutes les archives
+
+#### **3. Interface améliorée :**
+- **Boutons colorés** par format : JSON (bleu), CSV (vert), TXT (gris), PDF (rouge)
+- **Boutons existants conservés** : Email (violet), Print (orange)
+- **État de chargement** : Désactivation pendant export
+- **Checkboxes intégrées** dans chaque ligne d'archive
+
+#### **4. Fonctions ajoutées :**
+```typescript
+handleArchiveToggle(archiveId: string)     // Sélection individuelle
+handleSelectAll()                          // Sélection globale
+getSelectedArchivesData()                  // Récupération données sélectionnées
+handleExport(format: 'json'|'csv'|'txt'|'pdf') // Export avec sélection
+```
+
+### **🎯 RÉSULTAT :**
+- ✅ **Export complet disponible** dans les sessions archivées
+- ✅ **Sélection multiple** fonctionnelle
+- ✅ **Interface cohérente** avec le gestionnaire d'archivage
+- ✅ **Tous les formats d'export** : JSON, CSV, TXT, PDF
+- ✅ **Fonctionnalités existantes préservées** : Email, Print
+
+### **📁 FICHIERS MODIFIÉS :**
+- `App.tsx` : Composant ArchivesPanel étendu + appel corrigé
+
+---
+
+## 🔊 **EFFETS SONORES TIMER IMPLÉMENTÉS** *(08/08/2025 - 17:30)*
+
+### **🎯 FONCTIONNALITÉ AJOUTÉE :**
+Système d'effets sonores pour tous les événements du chronomètre et compte à rebours
+
+### **✅ SOLUTION TECHNIQUE :**
+
+#### **1. Nouveau composant TimerSoundEffects**
+- **Fichier :** `Components/Audio/TimerSoundEffects.tsx`
+- **Hook personnalisé :** `useTimerSounds()` avec Web Audio API
+- **Configuration :** Sons spécifiques pour chaque événement timer
+
+#### **2. Événements sonores implémentés :**
+- **▶️ Démarrage** : 2 bips doux et encourageants (800Hz + 1000Hz)
+- **⏸️ Pause** : 1 bip neutre et court (600Hz)
+- **▶️ Reprise** : 1 bip similaire au démarrage (900Hz)
+- **⏹️ Arrêt** : 2 bips de confirmation (700Hz + 500Hz)
+- **🔔 Fin compte à rebours** : 3 bips d'alerte progressive (800Hz → 1000Hz → 1200Hz)
+
+#### **3. Intégration dans App.tsx :**
+- **Import :** `TimerSoundEffects` ajouté
+- **Rendu :** Composant intégré après `AmbientSoundManager`
+- **Appels sonores :** Ajoutés dans toutes les fonctions timer
+  - `start()` : Son de démarrage
+  - `pause()` : Son de pause
+  - `resume()` : Son de reprise (sans double son)
+  - `stop()` : Son d'arrêt
+  - `handleCountdownFinish()` : Son de fin de compte à rebours
+
+#### **4. Caractéristiques techniques :**
+- **Web Audio API** : Oscillateurs synthétiques pour performance
+- **Volume adaptatif** : Respecte le volume global de l'application
+- **Fade-out automatique** : Sons qui s'estompent naturellement
+- **Gestion d'erreurs** : Fallback silencieux si Web Audio non supporté
+- **Exposition globale** : `window.playTimerSound()` pour utilisation externe
+
+### **🎵 CONFIGURATION SONORE :**
+```typescript
+TIMER_SOUND_CONFIG = {
+  start: [800Hz(0.15s), 1000Hz(0.15s)],      // Encourageant
+  pause: [600Hz(0.1s)],                       // Neutre
+  resume: [900Hz(0.1s)],                      // Reprise
+  stop: [700Hz(0.12s), 500Hz(0.15s)],        // Confirmation
+  countdown_finish: [800Hz→1000Hz→1200Hz]     // Alerte progressive
+}
+```
+
+### **🎯 RÉSULTAT :**
+- ✅ **Feedback audio immédiat** pour toutes les actions timer
+- ✅ **Sons non-intrusifs** et professionnels
+- ✅ **Synchronisation parfaite** avec les événements
+- ✅ **Respect du volume global** de l'application
+- ✅ **Performance optimisée** avec Web Audio API
+
+### **📁 FICHIERS MODIFIÉS :**
+- `Components/Audio/TimerSoundEffects.tsx` : **NOUVEAU** - Système d'effets sonores
+- `App.tsx` : Import + intégration + appels dans fonctions timer
+
+---
+
+## 🔄 **GESTION MULTI-ONGLETS IMPLÉMENTÉE** *(08/08/2025 - 17:40)*
+
+### **🚨 PROBLÈME RÉSOLU :**
+- **Application se met en pause** quand on change d'onglet
+- **Développeurs bloqués** : impossible de travailler sur autre chose
+- **Timer s'arrête** dès qu'on quitte l'onglet de l'application
+
+### **✅ SOLUTION TECHNIQUE COMPLÈTE :**
+
+#### **1. Nouveau composant MultiTabManager**
+- **Fichier :** `Components/Utils/MultiTabManager.tsx`
+- **Hook :** `useMultiTabManager()` avec Page Visibility API
+- **Interface :** Widget flottant avec indicateur de statut et configuration URL
+
+#### **2. Web Worker pour timer en arrière-plan**
+- **Fichier :** `public/timer-worker.js`
+- **Fonctionnalité :** Timer continue même onglet masqué
+- **Hook :** `Components/Hooks/useBackgroundTimer.tsx` (préparé pour future utilisation)
+
+#### **3. Système d'inactivité amélioré**
+- **Modification :** `useInactivityDetector` dans `App.tsx`
+- **Logique :** Inactivité suspendue quand onglet non visible
+- **Détection :** Page Visibility API + événements focus/blur
+
+#### **4. Fonctionnalités implémentées :**
+- **👁️ Détection visibilité onglet** : Indicateur temps réel (vert=actif, orange=arrière-plan)
+- **🔗 URL de travail optionnelle** : Utilisateur peut spécifier où il travaille
+- **💾 Sauvegarde automatique** : URL de travail persistée dans localStorage
+- **🔔 Notifications** : Préparé pour alertes onglet inactif (future extension)
+- **⏸️ Inactivité intelligente** : Ne se déclenche que si onglet visible
+
+#### **5. Interface utilisateur :**
+- **Widget flottant** en haut à droite
+- **Indicateur de statut** : Vert (onglet actif) / Orange (arrière-plan)
+- **Configuration URL** : Champ pour spécifier localhost ou URL de travail
+- **Aide contextuelle** : "Le timer continue même si vous changez d'onglet"
+
+#### **6. Intégration dans App.tsx :**
+- **États ajoutés :**
+  ```typescript
+  const [multiTabEnabled, setMultiTabEnabled] = useState(true);
+  const [workingUrl, setWorkingUrl] = useState<string>('');
+  ```
+- **Gestionnaires :**
+  ```typescript
+  handleTabVisibilityChange(isVisible: boolean)
+  handleWorkingUrlChange(url: string)
+  ```
+
+### **🎯 RÉSULTAT :**
+- ✅ **Timer continue en arrière-plan** même onglet masqué
+- ✅ **Inactivité suspendue** quand onglet non visible
+- ✅ **Interface intuitive** avec indicateur de statut
+- ✅ **URL de travail configurable** pour développeurs
+- ✅ **Sauvegarde automatique** des préférences
+- ✅ **Logs détaillés** pour debugging
+
+### **🔧 TECHNIQUE :**
+- **Page Visibility API** : `document.hidden`, `visibilitychange`
+- **Événements focus/blur** : Détection changement onglet
+- **localStorage** : Persistance URL de travail
+- **Web Workers** : Préparé pour timer arrière-plan (extensible)
+
+### **📁 FICHIERS MODIFIÉS :**
+- `Components/Utils/MultiTabManager.tsx` : **NOUVEAU** - Gestionnaire multi-onglets
+- `Components/Hooks/useBackgroundTimer.tsx` : **NOUVEAU** - Hook timer arrière-plan
+- `public/timer-worker.js` : **NOUVEAU** - Web Worker timer
+- `App.tsx` : useInactivityDetector amélioré + intégration MultiTabManager
+
+---
+
+*Dernière mise à jour : 08/08/2025 - Version 5.0.0 - GESTION MULTI-ONGLETS COMPLÈTE*

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useCallback } from 'react';
 
 interface TimeContextType {
   getCurrentTime: () => Date;
@@ -24,9 +24,10 @@ interface TimeProviderProps {
 export const TimeProvider: React.FC<TimeProviderProps> = ({ children }) => {
   const [simulatedTime, setSimulatedTime] = useState<Date | null>(null);
 
-  const getCurrentTime = (): Date => {
+  // Mémoïse pour stabilité des références dans les dépendances de useEffect
+  const getCurrentTime = useCallback((): Date => {
     return simulatedTime || new Date();
-  };
+  }, [simulatedTime]);
 
   const handleSetSimulatedTime = (time: Date | null) => {
     setSimulatedTime(time);

@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 
 /**
- * Script pour déployer les règles Firestore
- * 
+ * Script pour déployer les règles Firestore (ESM compatible)
+ *
  * Prérequis:
  * 1. Installer Firebase CLI: npm install -g firebase-tools
  * 2. Se connecter: firebase login
  * 3. Initialiser le projet: firebase init firestore
- * 
- * Usage: node scripts/deploy-firestore-rules.js
+ *
+ * Usage:
+ *   node scripts/deploy-firestore-rules.js --project <project-id>
+ *   # ou définir la variable d'environnement FIREBASE_PROJECT
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 console.log('🔥 Déploiement des règles Firestore...');
+
+// Résolution __dirname en ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Vérifier que les fichiers existent
 const rulesFile = path.join(__dirname, '..', 'firestore.rules');
@@ -31,14 +38,30 @@ if (!fs.existsSync(configFile)) {
     process.exit(1);
 }
 
+// Récupérer le projectId via --project ou env
+const args = process.argv.slice(2);
+const projectArgIndex = args.findIndex(a => a === '--project');
+let projectId = process.env.FIREBASE_PROJECT || '';
+if (projectArgIndex !== -1 && args[projectArgIndex + 1]) {
+    projectId = args[projectArgIndex + 1];
+}
+
 try {
-    // Déployer les règles
+    // Construire la commande
+    const baseCmd = 'firebase deploy --only firestore:rules';
+    const cmd = projectId ? `${baseCmd} --project ${projectId}` : baseCmd;
+
+    if (!projectId) {
+        console.warn('⚠️  Aucun projectId fourni. La CLI utilisera le projet actif si configuré.');
+        console.warn('    Passez --project <project-id> ou définissez FIREBASE_PROJECT pour éviter cette alerte.');
+    }
+
     console.log('📤 Déploiement en cours...');
-    execSync('firebase deploy --only firestore:rules', { 
+    execSync(cmd, {
         stdio: 'inherit',
         cwd: path.join(__dirname, '..')
     });
-    
+
     console.log('✅ Règles Firestore déployées avec succès !');
     console.log('');
     console.log('🔍 Pour vérifier les règles:');
@@ -46,13 +69,13 @@ try {
     console.log('');
     console.log('🧪 Pour tester les règles:');
     console.log('   firebase emulators:start --only firestore');
-    
+
 } catch (error) {
-    console.error('❌ Erreur lors du déploiement:', error.message);
+    console.error('❌ Erreur lors du déploiement:', error?.message || error);
     console.log('');
     console.log('💡 Solutions possibles:');
     console.log('   1. Vérifiez que vous êtes connecté: firebase login');
     console.log('   2. Vérifiez le projet: firebase projects:list');
-    console.log('   3. Sélectionnez le bon projet: firebase use <project-id>');
+    console.log('   3. Spécifiez le projet: --project <project-id> ou FIREBASE_PROJECT=...');
     process.exit(1);
 }

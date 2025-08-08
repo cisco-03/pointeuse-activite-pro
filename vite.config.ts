@@ -42,6 +42,12 @@ export default defineConfig(({ mode }) => {
         // 🔧 CISCO: S'assurer que tous les assets sont copiés
         assetsDir: 'assets',
         copyPublicDir: true
+      },
+      // Configuration tests (Vitest)
+      test: {
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: './vitest.setup.ts'
       }
     };
 });

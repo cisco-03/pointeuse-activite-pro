@@ -124,7 +124,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
   const { userLocation, locationReady } = useLocation();
   const { getCurrentTime } = useTime();
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [transitionPhase, setTransitionPhase] = useState<string>('night');
 
   
   const currentModeRef = useRef(skyMode);
@@ -189,13 +188,19 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
 
   // 🔧 CISCO: Changement de mode avec CROSS FADE progressif TOUJOURS
   const setBackgroundMode = (mode: BackgroundMode) => {
-    console.log(`🎨 Changement de mode vers: ${mode} depuis ${currentModeRef.current}`);
+    // Guard anti-réentrance pendant une transition
+    if (isTransitioning) {
+      console.log('⏳ Transition en cours, setBackgroundMode ignoré');
+      return;
+    }
 
-    // Si c'est le même mode, ne rien faire
+    // Si c'est le même mode, ne rien faire (évite le spam de logs)
     if (mode === currentModeRef.current) {
       console.log('🔄 Mode identique, pas de transition');
       return;
     }
+
+    console.log(`🎨 Changement de mode vers: ${mode} depuis ${currentModeRef.current}`);
 
     // Transition avec pont si modes adjacents
     const transitionKey = `${currentModeRef.current}-${mode}` as keyof typeof TRANSITION_MODES;
@@ -358,6 +363,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
 
   // 🔧 FONCTION PRINCIPALE: Transition progressive fluide entre modes
   const updateDynamicBackground = (mode?: BackgroundMode) => {
+    if (isTransitioning) { console.log('⏳ Transition déjà en cours, updateDynamicBackground ignoré'); return; }
     if (!gradientRef.current) return;
 
     const targetMode = mode || skyMode as BackgroundMode;
@@ -365,8 +371,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     
     // 🎬 INDICATEUR DE TRANSITION
     setIsTransitioning(true);
-    setTransitionPhase('fade-in'); // Transition directe, pas de fade-out
-    
+
     // 🔧 DÉGRADÉ MODIFIÉ: Pour l'aube - commence plus haut (30%)
     let gradient;
     if (targetMode === 'dawn') {
@@ -387,6 +392,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     timelineRef.current = gsap.timeline({
       onComplete: () => {
         setIsTransitioning(false);
+        currentModeRef.current = targetMode; // ✅ Mettre à jour le mode courant pour éviter toute re-boucle
         console.log(`✨ Transition vers ${targetMode} terminée !`);
       }
     });
@@ -558,32 +564,32 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     };
   }, []);
 
-  // Réagir aux changements de mode
-  useEffect(() => {
-    setBackgroundMode(skyMode as BackgroundMode);
-  }, [skyMode]);
-
-  // Effect pour mettre à jour l'arrière-plan automatiquement
+  // Gestion du mode manuel/auto avec intervalle sécurisé et anti-boucle
   useEffect(() => {
     if (skyMode) {
       // Mode manuel via props
-      updateDynamicBackground(skyMode as BackgroundMode);
-    } else {
-      // Mode automatique basé sur l'heure
-      const currentMode = getModeForTime(getCurrentTime());
-      updateDynamicBackground(currentMode as BackgroundMode);
-
-      // Vérifier les changements toutes les minutes
-      const interval = setInterval(() => {
-        const newMode = getModeForTime(getCurrentTime());
-        if (newMode !== currentModeRef.current) {
-          updateDynamicBackground(newMode as BackgroundMode);
-        }
-      }, 60000);
-
-      return () => clearInterval(interval);
+      if (skyMode !== (currentModeRef.current as string)) {
+        setBackgroundMode(skyMode as BackgroundMode);
+      }
+      return;
     }
-  }, [skyMode, getCurrentTime, getModeForTime, updateDynamicBackground, transitionPhase]);
+
+    // Mode automatique basé sur l'heure
+    const nowMode = getModeForTime(getCurrentTime());
+    if (nowMode !== currentModeRef.current) {
+      updateDynamicBackground(nowMode as BackgroundMode);
+    }
+
+    // Vérifier les changements toutes les minutes
+    const interval = setInterval(() => {
+      const newMode = getModeForTime(getCurrentTime());
+      if (newMode !== currentModeRef.current) {
+        updateDynamicBackground(newMode as BackgroundMode);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [skyMode, getCurrentTime, getModeForTime]);
 
 
 

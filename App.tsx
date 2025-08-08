@@ -6,6 +6,8 @@ import BackgroundInfo from './Components/UI/BackgroundInfo';
 import ControlButtonsWrapper from './Components/UI/ControlButtonsWrapper';
 import SlideFooter from './Components/UI/SlideFooter';
 import AmbientSoundManager from './Components/Audio/AmbientSoundManager';
+import TimerSoundEffects from './Components/Audio/TimerSoundEffects';
+import MultiTabManager from './Components/Utils/MultiTabManager';
 
 import { TimeProvider, useTime } from './Components/Context/TimeContext';
 import { LocationProvider, useLocation } from './Components/Context/LocationContext';
@@ -121,13 +123,13 @@ const DEFAULT_AGENCIES: Omit<Agency, 'id'>[] = [
 
 const translations: { [key in Lang]: Translations } = {
   fr: {
-    loginTitle: "Pointeuse d'Activité Pro",
+    loginTitle: "TimeTracker V4",
     loginButton: "Se connecter avec Google",
     logout: "Déconnexion",
     welcome: "Bienvenue",
-    selectAgency: "Sélectionnez une agence",
-    addAgency: "Ajouter une nouvelle agence",
-    agencyName: "Nom de l'agence",
+    selectAgency: "Sélectionnez une activité",
+    addAgency: "Ajouter une nouvelle activité",
+    agencyName: "Nom de l'activité",
     add: "Ajouter",
     firstTaskPrompt: "Décrivez votre première tâche pour commencer...",
     start: "Démarrer",
@@ -142,41 +144,123 @@ const translations: { [key in Lang]: Translations } = {
     sendEmail: "Envoyer par Email",
     print: "Imprimer",
     clearHistory: "Vider l'historique",
-    showAgencySelector: "Agences",
+    showAgencySelector: "Activités",
     showHistory: "Historique",
-    deleteAgency: "Supprimer l'agence",
-    confirmDeleteAgency: "Êtes-vous sûr de vouloir supprimer cette agence ? Cette action est irréversible.",
+    deleteAgency: "Supprimer l'activité",
+    confirmDeleteAgency: "Êtes-vous sûr de vouloir supprimer cette activité ? Cette action est irréversible.",
     showArchives: "Archives",
-    archivedSessions: "Sessions archivées (90+ jours)",
+    archivedSessions: "Sessions archivées",
     noArchives: "Aucune session archivée trouvée.",
     confirmClearHistory: "Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.",
     noHistory: "Aucun historique de session trouvé.",
     help: "Aide",
-    welcomeTitle: "Bienvenue dans Pointeuse d'Activité Pro !",
-    welcomeMessage: "Cette application vous permet de suivre votre temps de travail par agence. Consultez l'aide pour plus d'informations.",
+    welcomeTitle: "Bienvenue dans TimeTracker V4 !",
+    welcomeMessage: "Cette application vous permet de suivre votre temps de travail par activité. Consultez l'aide pour plus d'informations.",
     helpTitle: "Guide d'utilisation",
     helpContent: `
-**Comment utiliser l'application :**
+GUIDE D'UTILISATION COMPLET
 
-1. **Sélectionnez une agence** dans la liste déroulante
-2. **Ajoutez une nouvelle agence** avec le bouton "+"
-3. **Décrivez votre première tâche** dans le champ de texte
-4. **Cliquez sur "Démarrer"** pour lancer le chronomètre
-5. **Ajoutez des notes** pendant votre session de travail
-6. **Cliquez sur "Arrêter"** pour terminer la session
+═══════════════════════════════════════════════════════════════
 
-**Fonctionnalités :**
-- ⏱️ Chronomètre automatique avec pause/reprise
-- 📝 Journal d'activité avec horodatage complet
-- 📊 Historique des sessions par agence
-- 📤 Export en .txt et envoi par email
-- 🗑️ Archivage automatique après 90 jours
-- 🌐 Interface multilingue (FR/EN)
+DÉMARRAGE RAPIDE
 
-**Conseils :**
+1. Sélectionnez une activité dans la liste déroulante
+2. Ajoutez une nouvelle activité avec le bouton "+"
+3. Décrivez votre première tâche dans le champ de texte
+4. Cliquez sur "Démarrer" pour lancer le chronomètre
+5. Ajoutez des notes pendant votre session de travail
+6. Cliquez sur "Arrêter" pour terminer la session
+
+═══════════════════════════════════════════════════════════════
+
+MODES DE FONCTIONNEMENT
+
+MODE NORMAL
+- Sélection d'activité obligatoire
+- Description de tâche obligatoire
+- Suivi précis par activité
+
+MODE LIBRE
+- Activez le toggle "Mode libre"
+- Aucune contrainte de sélection
+- Démarrage immédiat possible
+- Idéal pour les sessions spontanées
+
+CHRONOMÈTRE vs COMPTE À REBOURS
+- Chronomètre : mesure le temps écoulé
+- Compte à rebours : définissez une durée cible
+- Basculez entre les modes selon vos besoins
+
+═══════════════════════════════════════════════════════════════
+
+FONCTIONNALITÉS AVANCÉES
+
+GESTION DES SESSIONS
+- Pause/reprise à tout moment
+- Ajout de notes en temps réel
+- Vérifications d'activité automatiques
+- Sauvegarde automatique en temps réel
+
+HISTORIQUE ET ARCHIVES
+- Consultation de toutes vos sessions
+- Suppression individuelle possible
+- Archivage automatique des sessions anciennes
+- Recherche et filtrage par activité
+
+EXPORT ET PARTAGE
+- Export JSON pour analyse technique
+- Export CSV pour tableurs (Excel, Calc)
+- Export TXT pour lecture simple
+- Export PDF pour impression
+- Envoi direct par email
+- Archivage sélectif des sessions
+
+═══════════════════════════════════════════════════════════════
+
+INTERFACE ET NAVIGATION
+
+MENU PRINCIPAL (toujours visible)
+- Activités : gestion de vos activités
+- Historique : consultation des sessions
+- Archives : sessions archivées
+- Export : outils d'export et archivage
+- Aide : ce guide d'utilisation
+
+CONTRÔLES AUDIO ET VISUELS
+- Ambiances sonores adaptées à l'heure
+- Contrôle du volume et activation/désactivation
+- Arrière-plans dynamiques selon l'heure
+- Mode manuel ou automatique
+
+═══════════════════════════════════════════════════════════════
+
+CONSEILS D'UTILISATION
+
+PRODUCTIVITÉ
 - Décrivez précisément vos tâches pour un suivi optimal
 - Utilisez les notes pour documenter votre progression
-- L'historique est automatiquement sauvegardé
+- Profitez du mode libre pour les sessions courtes
+- Archivez régulièrement vos anciennes sessions
+
+ORGANISATION
+- Créez des activités spécifiques à vos projets
+- Utilisez des noms d'activités clairs et cohérents
+- Exportez vos données régulièrement
+- Consultez l'historique pour analyser votre temps
+
+SÉCURITÉ
+- Vos données sont sauvegardées automatiquement
+- Connexion sécurisée via Google
+- Données privées et chiffrées
+- Aucune perte de données en cas de fermeture
+
+═══════════════════════════════════════════════════════════════
+
+SUPPORT ET LANGUES
+
+L'application est disponible en français et anglais.
+Basculez entre les langues via le sélecteur en haut à droite.
+Toutes vos données sont préservées lors du changement de langue.
     `,
     closeHelp: "Fermer",
     gotIt: "J'ai compris",
@@ -247,9 +331,9 @@ const translations: { [key in Lang]: Translations } = {
     loginButton: "Sign in with Google",
     logout: "Logout",
     welcome: "Welcome",
-    selectAgency: "Select an agency",
-    addAgency: "Add new agency",
-    agencyName: "Agency name",
+    selectAgency: "Select an activity",
+    addAgency: "Add new activity",
+    agencyName: "Activity name",
     add: "Add",
     firstTaskPrompt: "Describe your first task to begin...",
     start: "Start",
@@ -264,10 +348,10 @@ const translations: { [key in Lang]: Translations } = {
     sendEmail: "Send via Email",
     print: "Print",
     clearHistory: "Clear History",
-    showAgencySelector: "Agencies",
+    showAgencySelector: "Activities",
     showHistory: "History",
-    deleteAgency: "Delete Agency",
-    confirmDeleteAgency: "Are you sure you want to delete this agency? This action cannot be undone.",
+    deleteAgency: "Delete Activity",
+    confirmDeleteAgency: "Are you sure you want to delete this activity? This action cannot be undone.",
     showArchives: "Archives",
     archivedSessions: "Archived Sessions (90+ days)",
     noArchives: "No archived sessions found.",
@@ -275,30 +359,112 @@ const translations: { [key in Lang]: Translations } = {
     noHistory: "No session history found.",
     help: "Help",
     welcomeTitle: "Welcome to Activity Time Tracker Pro!",
-    welcomeMessage: "This application helps you track your work time by agency. Check the help section for more information.",
+    welcomeMessage: "This application helps you track your work time by activity. Check the help section for more information.",
     helpTitle: "User Guide",
     helpContent: `
-**How to use the application:**
+COMPLETE USER GUIDE
 
-1. **Select an agency** from the dropdown list
-2. **Add a new agency** with the "+" button
-3. **Describe your first task** in the text field
-4. **Click "Start"** to begin the timer
-5. **Add notes** during your work session
-6. **Click "Stop"** to end the session
+═══════════════════════════════════════════════════════════════
 
-**Features:**
-- ⏱️ Automatic timer with pause/resume
-- 📝 Activity log with full timestamps
-- 📊 Session history by agency
-- 📤 Export to .txt and email sending
-- 🗑️ Automatic archiving after 90 days
-- 🌐 Multilingual interface (FR/EN)
+QUICK START
 
-**Tips:**
+1. Select an activity from the dropdown list
+2. Add a new activity with the "+" button
+3. Describe your first task in the text field
+4. Click "Start" to begin the timer
+5. Add notes during your work session
+6. Click "Stop" to end the session
+
+═══════════════════════════════════════════════════════════════
+
+OPERATING MODES
+
+NORMAL MODE
+- Activity selection required
+- Task description required
+- Precise tracking by activity
+
+FREE MODE
+- Enable the "Free mode" toggle
+- No selection constraints
+- Immediate start possible
+- Ideal for spontaneous sessions
+
+STOPWATCH vs COUNTDOWN
+- Stopwatch: measures elapsed time
+- Countdown: set a target duration
+- Switch between modes as needed
+
+═══════════════════════════════════════════════════════════════
+
+ADVANCED FEATURES
+
+SESSION MANAGEMENT
+- Pause/resume at any time
+- Add notes in real time
+- Automatic activity checks
+- Real-time automatic saving
+
+HISTORY AND ARCHIVES
+- View all your sessions
+- Individual deletion possible
+- Automatic archiving of old sessions
+- Search and filter by activity
+
+EXPORT AND SHARING
+- JSON export for technical analysis
+- CSV export for spreadsheets (Excel, Calc)
+- TXT export for simple reading
+- PDF export for printing
+- Direct email sending
+- Selective session archiving
+
+═══════════════════════════════════════════════════════════════
+
+INTERFACE AND NAVIGATION
+
+MAIN MENU (always visible)
+- Activities: manage your activities
+- History: view sessions
+- Archives: archived sessions
+- Export: export and archiving tools
+- Help: this user guide
+
+AUDIO AND VISUAL CONTROLS
+- Ambient sounds adapted to time
+- Volume control and enable/disable
+- Dynamic backgrounds according to time
+- Manual or automatic mode
+
+═══════════════════════════════════════════════════════════════
+
+USAGE TIPS
+
+PRODUCTIVITY
 - Describe your tasks precisely for optimal tracking
 - Use notes to document your progress
-- History is automatically saved
+- Take advantage of free mode for short sessions
+- Archive your old sessions regularly
+
+ORGANIZATION
+- Create activities specific to your projects
+- Use clear and consistent activity names
+- Export your data regularly
+- Check history to analyze your time
+
+SECURITY
+- Your data is automatically saved
+- Secure connection via Google
+- Private and encrypted data
+- No data loss in case of closure
+
+═══════════════════════════════════════════════════════════════
+
+SUPPORT AND LANGUAGES
+
+The application is available in French and English.
+Switch between languages via the selector in the top right.
+All your data is preserved when changing languages.
     `,
     closeHelp: "Close",
     gotIt: "Got it",
@@ -368,7 +534,25 @@ const translations: { [key in Lang]: Translations } = {
 
 
 // ========= HELPER FUNCTIONS =========
-const formatTime = (totalMilliseconds: number): string => {
+export const formatTime = (totalMilliseconds: number): string => {
+  // Formate une durée en HH:MM:SS (sans millisecondes pour l'affichage utilisateur)
+  const totalSeconds = Math.floor(totalMilliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+  const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+};
+
+// 🔧 CISCO: Nouvelle fonction pour formater depuis des secondes (pour les sessions sauvegardées)
+export const formatTimeFromSeconds = (totalSeconds: number): string => {
+  const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+  const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+  const secs = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}:${secs}`;
+};
+
+// Fonction pour l'affichage avec millisecondes (pour debug/export si nécessaire)
+export const formatTimeWithMs = (totalMilliseconds: number): string => {
   const totalSeconds = Math.floor(totalMilliseconds / 1000);
   const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
   const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
@@ -478,7 +662,7 @@ const useAuth = () => {
       console.error("Error during sign-out:", error);
     }
   };
-  
+
   const checkAndCreateUserProfile = async (user: AppUser) => {
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
@@ -565,7 +749,7 @@ const useFirestore = (userId: string | undefined) => {
             return false;
         }
     };
-    
+
     const saveSession = async (session: Omit<Session, 'id'>) => {
         if (!userId) {
             console.error("❌ Impossible de sauvegarder - userId manquant");
@@ -584,8 +768,11 @@ const useFirestore = (userId: string | undefined) => {
             const docRef = await addDoc(sessionsColRef, session);
             console.log('✅ Session sauvegardée avec ID:', docRef.id);
 
-            // Recharger l'historique pour voir la nouvelle session
-            await fetchHistory();
+            // 🔧 CISCO: Ajouter directement la session à l'état local au lieu de recharger tout l'historique
+            const newSession: Session = { ...session, id: docRef.id };
+            setHistory(prev => [newSession, ...prev]);
+
+            console.log('💾 Session ajoutée à l\'historique local - Export disponible via les boutons');
         } catch (error) {
             console.error("❌ Erreur lors de la sauvegarde de la session:", error);
         }
@@ -633,41 +820,44 @@ const useFirestore = (userId: string | undefined) => {
 
         console.log('📚 Chargement de l\'historique...');
 
-        // D'abord, archiver les anciennes sessions (90+ jours)
-        // TEMPORAIREMENT DÉSACTIVÉ - Nécessite un index Firebase
-        // await autoArchiveOldSessions();
-
         const sessionsColRef = collection(db, 'sessions');
         const q = query(sessionsColRef, where("userId", "==", userId), orderBy("startTime", "desc"));
 
-        try {
-            const querySnapshot = await getDocs(q);
-            const sessions: Session[] = [];
-            querySnapshot.forEach((doc) => {
-                sessions.push({ id: doc.id, ...doc.data() } as Session);
-            });
-            setHistory(sessions);
-            console.log(`✅ ${sessions.length} sessions chargées dans l'historique`);
-        } catch (error: any) {
-            console.error("❌ Error fetching history:", error);
-
-            // Gestion spécifique des erreurs Firebase
-            if (error.code === 'permission-denied') {
-                console.log('🔒 Permissions Firebase insuffisantes. Vérifiez les règles de sécurité.');
-                console.log('🔍 État d\'authentification:', auth.currentUser ? 'Connecté' : 'Non connecté');
-                console.log('🆔 User ID:', userId);
-                // Afficher un message d'erreur moins technique à l'utilisateur
-                setHistory([]);
-                return;
+        // Retry avec backoff linéaire (3 tentatives)
+        let lastError: any = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const querySnapshot = await getDocs(q);
+                const sessions: Session[] = [];
+                querySnapshot.forEach((doc) => {
+                    sessions.push({ id: doc.id, ...doc.data() } as Session);
+                });
+                setHistory(sessions);
+                console.log(`✅ ${sessions.length} sessions chargées dans l'historique`);
+                lastError = null;
+                break;
+            } catch (error: any) {
+                console.error(`❌ Error fetching history (tentative ${attempt}/3):`, error);
+                lastError = error;
+                // Erreur permissions: ne pas réessayer
+                if (error.code === 'permission-denied') {
+                    console.log('🔒 Permissions Firebase insuffisantes. Vérifiez les règles de sécurité.');
+                    console.log('🔍 État d\'authentification:', auth.currentUser ? 'Connecté' : 'Non connecté');
+                    console.log('🆔 User ID:', userId);
+                    setHistory([]);
+                    return;
+                }
+                // Info index manquant
+                if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                    console.log('🔗 Lien pour créer l\'index automatiquement détecté dans l\'erreur');
+                    console.log('📋 Suivez le lien dans l\'erreur pour créer l\'index Firestore');
+                }
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, attempt * 500));
+                }
             }
-
-            // Si c'est une erreur d'index manquant, afficher un message informatif
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                console.log('🔗 Lien pour créer l\'index automatiquement détecté dans l\'erreur');
-                console.log('📋 Suivez le lien dans l\'erreur pour créer l\'index Firestore');
-            }
-
-            // En cas d'erreur, garder un historique vide pour ne pas planter l'app
+        }
+        if (lastError) {
             setHistory([]);
         }
 
@@ -697,7 +887,7 @@ const useFirestore = (userId: string | undefined) => {
         }
     }, [userId]);
 
-    // Nouvelle fonction pour détecter les sessions anciennes (90+ jours)
+    // 🔧 CISCO: Fonction pour détecter les sessions anciennes à archiver
     const getOldSessions = useCallback(() => {
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -743,7 +933,7 @@ const useFirestore = (userId: string | undefined) => {
                 `"${formatDate(session.startTime, 'fr')}"`,
                 `"${session.agencyName}"`,
                 session.totalDurationSeconds,
-                `"${formatTime(session.totalDurationSeconds)}"`,
+                `"${formatTimeFromSeconds(session.totalDurationSeconds)}"`,
                 session.logs.length,
                 `"${session.logs[0]?.note || ''}"`,
                 `"${session.logs[session.logs.length - 1]?.note || ''}"`
@@ -769,7 +959,7 @@ const useFirestore = (userId: string | undefined) => {
             content += `Session ${index + 1}\n`;
             content += `Date: ${formatDate(session.startTime, 'fr')}\n`;
             content += `Agence: ${session.agencyName}\n`;
-            content += `Durée: ${formatTime(session.totalDurationSeconds)}\n`;
+            content += `Durée: ${formatTimeFromSeconds(session.totalDurationSeconds)}\n`;
             content += `Logs (${session.logs.length}):\n`;
             session.logs.forEach(log => {
                 content += `  - [${formatTimestamp(log.timestamp, 'fr')}] ${log.note}\n`;
@@ -811,7 +1001,7 @@ const useFirestore = (userId: string | undefined) => {
                             Session ${index + 1} - ${formatDate(session.startTime, 'fr')}
                         </div>
                         <p><strong>Agence:</strong> ${session.agencyName}</p>
-                        <p><strong>Durée:</strong> ${formatTime(session.totalDurationSeconds)}</p>
+                        <p><strong>Durée:</strong> ${formatTimeFromSeconds(session.totalDurationSeconds)}</p>
                         <p><strong>Logs (${session.logs.length}):</strong></p>
                         ${session.logs.map(log => `
                             <div class="log">
@@ -836,33 +1026,139 @@ const useFirestore = (userId: string | undefined) => {
         }
     };
 
-    // Fonction pour supprimer les sessions archivées de Firebase
+    // 🔧 CISCO: Fonction pour archiver les sessions (déplacer de 'sessions' vers 'archives')
+    const archiveSessions = async (sessionsToArchive: Session[]) => {
+        if (!userId) return false;
+
+        try {
+            console.log(`📦 Archivage de ${sessionsToArchive.length} sessions...`);
+
+            // 1. Ajouter les sessions à la collection 'archives'
+            const archivesColRef = collection(db, 'archives');
+            const archivePromises = sessionsToArchive.map(session => {
+                const { id, ...sessionData } = session; // Retirer l'ID pour créer un nouveau document
+                return addDoc(archivesColRef, sessionData);
+            });
+
+            await Promise.all(archivePromises);
+
+            // 2. Supprimer les sessions de la collection 'sessions'
+            const deletePromises: Promise<any>[] = [];
+            for (const session of sessionsToArchive) {
+                const sessionsColRef = collection(db, 'sessions');
+                const q = query(sessionsColRef,
+                    where('userId', '==', userId),
+                    where('startTime', '==', session.startTime)
+                );
+                const snap = await getDocs(q);
+                snap.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+            }
+
+            await Promise.all(deletePromises);
+
+            // 3. Mettre à jour les états locaux
+            const archivedIds = sessionsToArchive.map(s => s.id);
+            setHistory(prev => prev.filter(s => !archivedIds.includes(s.id)));
+            setArchives(prev => [...prev, ...sessionsToArchive]);
+
+            console.log(`✅ ${sessionsToArchive.length} sessions archivées avec succès`);
+            return true;
+
+        } catch (error) {
+            console.error("❌ Erreur lors de l'archivage:", error);
+            return false;
+        }
+    };
+
+    // 🔧 CISCO: Fonction pour supprimer une session individuelle de l'historique
+    const deleteHistorySession = async (sessionToDelete: Session) => {
+        if (!userId) return false;
+
+        try {
+            console.log(`🗑️ Suppression de la session: ${sessionToDelete.agencyName} - ${formatDate(sessionToDelete.startTime, 'fr')}`);
+
+            // Supprimer de Firebase
+            const sessionsColRef = collection(db, 'sessions');
+            const q = query(sessionsColRef,
+                where('userId', '==', userId),
+                where('startTime', '==', sessionToDelete.startTime)
+            );
+            const snap = await getDocs(q);
+            const deletePromises = snap.docs.map(d => deleteDoc(d.ref));
+            await Promise.all(deletePromises);
+
+            // Mettre à jour l'état local
+            setHistory(prev => prev.filter(s => s.id !== sessionToDelete.id));
+
+            console.log(`✅ Session supprimée avec succès`);
+            return true;
+
+        } catch (error) {
+            console.error("❌ Erreur lors de la suppression de la session:", error);
+            return false;
+        }
+    };
+
+    // Fonction pour supprimer les sessions ARCHIVÉES (collection 'archives') de Firebase
+    // Conformément à la politique: l'historique ('sessions') est conservé ; on retire l'archive uniquement
     const deleteArchivedSessions = async (sessionsToDelete: Session[]) => {
         if (!userId) return false;
 
         try {
-            console.log(`🗑️ Suppression de ${sessionsToDelete.length} sessions archivées...`);
+            console.log(`🗑️ Suppression de ${sessionsToDelete.length} enregistrements dans 'archives'...`);
 
-            const deletePromises = sessionsToDelete.map(session => {
-                if (session.id) {
-                    const sessionDocRef = doc(db, 'sessions', session.id);
-                    return deleteDoc(sessionDocRef);
-                }
-                return Promise.resolve();
-            });
+            // Pour chaque session, trouver l'archive correspondante par userId + startTime
+            const deletePromises: Promise<any>[] = [];
+            for (const s of sessionsToDelete) {
+                const archivesColRef = collection(db, 'archives');
+                const q = query(archivesColRef,
+                    where('userId', '==', userId),
+                    where('startTime', '==', s.startTime)
+                );
+                const snap = await getDocs(q);
+                snap.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+            }
 
             await Promise.all(deletePromises);
 
-            // Mettre à jour l'historique local
-            setHistory(prev => prev.filter(session =>
-                !sessionsToDelete.some(deleted => deleted.id === session.id)
-            ));
+            // Mettre à jour l'état local des archives
+            const deletedIds = sessionsToDelete.map(s => s.id);
+            setArchives(prev => prev.filter(s => !deletedIds.includes(s.id)));
 
-            console.log(`✅ ${sessionsToDelete.length} sessions supprimées avec succès`);
+            console.log(`✅ ${sessionsToDelete.length} archives supprimées avec succès`);
             return true;
 
         } catch (error) {
-            console.error("❌ Erreur lors de la suppression des sessions:", error);
+            console.error("❌ Erreur lors de la suppression des archives:", error);
+            return false;
+        }
+    };
+
+    // 🔧 CISCO: Fonction pour supprimer une session archivée individuelle
+    const deleteArchivedSession = async (sessionToDelete: Session) => {
+        if (!userId) return false;
+
+        try {
+            console.log(`🗑️ Suppression de l'archive: ${sessionToDelete.agencyName} - ${formatDate(sessionToDelete.startTime, 'fr')}`);
+
+            // Supprimer de Firebase
+            const archivesColRef = collection(db, 'archives');
+            const q = query(archivesColRef,
+                where('userId', '==', userId),
+                where('startTime', '==', sessionToDelete.startTime)
+            );
+            const snap = await getDocs(q);
+            const deletePromises = snap.docs.map(d => deleteDoc(d.ref));
+            await Promise.all(deletePromises);
+
+            // Mettre à jour l'état local
+            setArchives(prev => prev.filter(s => s.id !== sessionToDelete.id));
+
+            console.log(`✅ Archive supprimée avec succès`);
+            return true;
+
+        } catch (error) {
+            console.error("❌ Erreur lors de la suppression de l'archive:", error);
             return false;
         }
     };
@@ -873,7 +1169,7 @@ const useFirestore = (userId: string | undefined) => {
             const timer = setTimeout(() => {
                 fetchAgencies();
                 fetchHistory();
-            }, 500); // 500ms de délai pour laisser l'authentification se stabiliser
+            }, 1000); // 1000ms de délai pour laisser l'authentification se stabiliser
 
             return () => clearTimeout(timer);
         } else {
@@ -898,7 +1194,10 @@ const useFirestore = (userId: string | undefined) => {
         exportToCSV,
         exportToTXT,
         exportToPDF,
-        deleteArchivedSessions
+        archiveSessions,
+        deleteHistorySession,
+        deleteArchivedSessions,
+        deleteArchivedSession
     };
 };
 
@@ -917,6 +1216,11 @@ const useTimer = (onStop: (elapsedMilliseconds: number) => void) => {
         intervalRef.current = window.setInterval(() => {
             setElapsedTime(Date.now() - startTimeRef.current);
         }, 10); // Mise à jour toutes les 10ms pour les millisecondes
+
+        // 🔊 CISCO: Son de démarrage du chronomètre
+        if (typeof (window as any).playTimerSound === 'function') {
+            (window as any).playTimerSound('start');
+        }
     };
 
     const pause = () => {
@@ -925,6 +1229,11 @@ const useTimer = (onStop: (elapsedMilliseconds: number) => void) => {
             intervalRef.current = null;
             pauseTimeRef.current = Date.now();
             setStatus('paused');
+
+            // 🔊 CISCO: Son de pause du chronomètre
+            if (typeof (window as any).playTimerSound === 'function') {
+                (window as any).playTimerSound('pause');
+            }
         }
     };
 
@@ -932,7 +1241,17 @@ const useTimer = (onStop: (elapsedMilliseconds: number) => void) => {
         if (status === 'paused') {
             const pausedDuration = Date.now() - pauseTimeRef.current;
             startTimeRef.current += pausedDuration;
-            start(); // Re-uses start logic
+
+            // 🔊 CISCO: Son de reprise du chronomètre (avant start() pour éviter double son)
+            if (typeof (window as any).playTimerSound === 'function') {
+                (window as any).playTimerSound('resume');
+            }
+
+            // Note: On n'appelle pas start() pour éviter le double son, on refait la logique
+            setStatus('running');
+            intervalRef.current = window.setInterval(() => {
+                setElapsedTime(Date.now() - startTimeRef.current);
+            }, 10);
         }
     };
 
@@ -941,11 +1260,17 @@ const useTimer = (onStop: (elapsedMilliseconds: number) => void) => {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
+
+        // 🔊 CISCO: Son d'arrêt du chronomètre
+        if (typeof (window as any).playTimerSound === 'function') {
+            (window as any).playTimerSound('stop');
+        }
+
         onStop(elapsedTime);
         setElapsedTime(0);
         setStatus('stopped');
     };
-    
+
     const forcePause = useCallback(() => {
        if (status === 'running') {
            pause();
@@ -1104,28 +1429,60 @@ const IntermediateModal: React.FC<{
     );
 };
 
-// --- useInactivityDetector Hook ---
+// --- useInactivityDetector Hook - CISCO: Amélioré pour multi-onglets ---
 const useInactivityDetector = (onInactive: () => void, timeout = 300000) => { // 5 minutes
     const timerRef = useRef<number | null>(null);
+    const isTabVisibleRef = useRef(true);
 
     const resetTimer = useCallback(() => {
         if (timerRef.current) {
             clearTimeout(timerRef.current);
         }
-        timerRef.current = window.setTimeout(onInactive, timeout);
+
+        // 🔄 CISCO: Ne déclencher l'inactivité que si l'onglet est visible
+        timerRef.current = window.setTimeout(() => {
+            if (isTabVisibleRef.current) {
+                onInactive();
+            } else {
+                console.log('🔄 Inactivité ignorée - onglet non visible');
+                resetTimer(); // Relancer le timer si l'onglet n'est pas visible
+            }
+        }, timeout);
     }, [onInactive, timeout]);
 
     useEffect(() => {
         const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
 
-        const handleActivity = () => resetTimer();
-        
+        const handleActivity = () => {
+            // 👁️ CISCO: Activité détectée seulement si onglet visible
+            if (isTabVisibleRef.current) {
+                resetTimer();
+            }
+        };
+
+        // 👁️ CISCO: Gestion de la visibilité de l'onglet
+        const handleVisibilityChange = () => {
+            isTabVisibleRef.current = !document.hidden;
+            console.log(`👁️ Onglet ${isTabVisibleRef.current ? 'visible' : 'masqué'} - Inactivité ${isTabVisibleRef.current ? 'active' : 'suspendue'}`);
+
+            if (isTabVisibleRef.current) {
+                resetTimer(); // Relancer le timer quand l'onglet redevient visible
+            }
+        };
+
         events.forEach(event => window.addEventListener(event, handleActivity));
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleVisibilityChange);
+        window.addEventListener('blur', handleVisibilityChange);
+
         resetTimer();
 
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);
             events.forEach(event => window.removeEventListener(event, handleActivity));
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleVisibilityChange);
+            window.removeEventListener('blur', handleVisibilityChange);
         };
     }, [resetTimer]);
 };
@@ -1202,14 +1559,12 @@ const Header: React.FC<{
     onShowAgencySelector: () => void;
     onShowHistory: () => void;
     onShowArchives: () => void;
-    onShowArchiveManager: () => void;
     showAgencySelector: boolean;
     showHistory: boolean;
     showArchives: boolean;
-    showArchiveManager: boolean;
-}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, onShowArchiveManager, showAgencySelector, showHistory, showArchives, showArchiveManager }) => {
+}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, showAgencySelector, showHistory, showArchives }) => {
     return (
-        <header className="bg-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 print:hidden" style={{ position: 'relative', zIndex: 20 }}>
+        <header className="bg-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 print:hidden fixed top-0 left-0 right-0" style={{ zIndex: 50 }}>
             <h1 className="text-lg sm:text-xl font-bold text-teal-500 text-center sm:text-left">{t.loginTitle as string}</h1>
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
                 <button
@@ -1245,17 +1600,7 @@ const Header: React.FC<{
                 >
                     <span className="hidden sm:inline">{showArchives ? '📦 ' : '📦 '}</span>{t.showArchives as string}
                 </button>
-                <button
-                    onClick={onShowArchiveManager}
-                    className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                        showArchiveManager
-                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
-                    }`}
-                    title={showArchiveManager ? 'Fermer Gestionnaire Export' : 'Ouvrir Gestionnaire Export'}
-                >
-                    <span className="hidden sm:inline">{showArchiveManager ? '📤 ' : '📤 '}</span>Export
-                </button>
+
                 <button
                     onClick={onShowHelp}
                     className="bg-blue-600 hover:bg-blue-700 px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium"
@@ -1275,15 +1620,21 @@ const Header: React.FC<{
     );
 };
 
-const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations, onClearHistory: () => void }> = ({ history, lang, t, onClearHistory }) => {
+const HistoryPanel: React.FC<{
+    history: Session[],
+    lang: Lang,
+    t: Translations,
+    onClearHistory: () => void,
+    onDeleteSession: (session: Session) => Promise<boolean>
+}> = ({ history, lang, t, onClearHistory, onDeleteSession }) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
-    
+
     const generateTxtContent = () => {
         let content = `${t.sessionHistory}\n==================\n\n`;
         history.forEach(session => {
             content += `${t.date as string}: ${formatDate(session.startTime, lang)}\n`;
             content += `${t.agencyName as string}: ${session.agencyName}\n`;
-            content += `${t.duration as string}: ${formatTime(session.totalDurationSeconds)}\n`;
+            content += `${t.duration as string}: ${formatTimeFromSeconds(session.totalDurationSeconds)}\n`;
             content += `Logs:\n`;
             session.logs.forEach(log => {
                 content += `  - [${formatTimestamp(log.timestamp, lang)}] ${log.note}\n`;
@@ -1292,19 +1643,14 @@ const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations, 
         });
         return content;
     };
-    
-    const exportTxt = () => {
-        const content = generateTxtContent();
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `history_${new Date().toISOString().split('T')[0]}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+
+
+
+
+
+
+
+
 
     const sendEmail = () => {
         const subject = encodeURIComponent(t.sessionHistory as string);
@@ -1331,29 +1677,39 @@ const HistoryPanel: React.FC<{ history: Session[], lang: Lang, t: Translations, 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
                 <h2 className="text-xl sm:text-2xl font-semibold">{t.sessionHistory as string}</h2>
                 <div className="flex flex-wrap gap-2 print:hidden">
-                    <button onClick={exportTxt} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.exportTxt as string}</button>
-                    <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.sendEmail as string}</button>
-                    <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.print as string}</button>
-                    <button onClick={handleClearHistory} className="bg-red-700 hover:bg-red-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.clearHistory as string}</button>
+                    {/* 🔧 CISCO: Boutons historique - seulement Email, Imprimer, Vider */}
+                    <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">✉️ Email</button>
+                    <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">🖨️ Imprimer</button>
+                    <button onClick={handleClearHistory} className="bg-red-700 hover:bg-red-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">🗑️ Vider</button>
                 </div>
             </div>
             <div className="space-y-2">
                 {history.map(session => (
                     <div key={session.id} className="bg-gray-700 rounded-lg">
-                        <button 
-                            className="w-full flex justify-between items-center p-4 text-left"
-                            onClick={() => setExpandedId(expandedId === session.id ? null : session.id!)}
-                        >
-                            <div className="flex-1">
-                                <p className="font-semibold">{session.agencyName}</p>
-                                <p className="text-sm text-gray-400">{formatDate(session.startTime, lang)}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="font-mono text-lg">{formatTime(session.totalDurationSeconds)}</p>
-                                <p className="text-sm text-gray-400">{t.duration as string}</p>
-                            </div>
-                            <ChevronDownIcon />
-                        </button>
+                        <div className="flex items-center">
+                            <button
+                                className="flex-1 flex justify-between items-center p-4 text-left"
+                                onClick={() => setExpandedId(expandedId === session.id ? null : session.id!)}
+                            >
+                                <div className="flex-1">
+                                    <p className="font-semibold">{session.agencyName}</p>
+                                    <p className="text-sm text-gray-400">{formatDate(session.startTime, lang)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-mono text-lg">{formatTimeFromSeconds(session.totalDurationSeconds)}</p>
+                                    <p className="text-sm text-gray-400">{t.duration as string}</p>
+                                </div>
+                                <ChevronDownIcon />
+                            </button>
+                            {/* 🔧 CISCO: Bouton suppression individuelle */}
+                            <button
+                                onClick={() => onDeleteSession(session)}
+                                className="p-2 m-2 bg-red-600 hover:bg-red-700 rounded text-xs"
+                                title="Supprimer cette session"
+                            >
+                                🗑️
+                            </button>
+                        </div>
                         {expandedId === session.id && (
                             <div className="p-4 border-t border-gray-600">
                                 <h4 className="font-bold mb-2">{t.activityLog as string}</h4>
@@ -1388,7 +1744,7 @@ const RandomCheckModal: React.FC<{ t: Translations, onConfirm: (note: string) =>
             if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
         };
     }, [onDismiss]);
-    
+
     const handleSubmit = () => {
         if(note.trim()){
             onConfirm(note);
@@ -1419,44 +1775,52 @@ const RandomCheckModal: React.FC<{ t: Translations, onConfirm: (note: string) =>
     );
 };
 
-// Nouveau composant pour la gestion des archives
-const ArchiveManagerPanel: React.FC<{
-    oldSessions: Session[],
+
+
+
+
+
+
+
+const ArchivesPanel: React.FC<{
+    archives: Session[],
+    lang: Lang,
+    t: Translations,
+    onDeleteSession: (session: Session) => Promise<boolean>,
     onExportJSON: (sessions: Session[], filename: string) => void,
     onExportCSV: (sessions: Session[], filename: string) => void,
     onExportTXT: (sessions: Session[], filename: string) => void,
-    onExportPDF: (sessions: Session[], filename: string) => void,
-    onDeleteSessions: (sessions: Session[]) => Promise<boolean>,
-    lang: Lang,
-    t: Translations
-}> = ({ oldSessions, onExportJSON, onExportCSV, onExportTXT, onExportPDF, onDeleteSessions, lang, t }) => {
-    const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
-    const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+    onExportPDF: (sessions: Session[], filename: string) => void
+}> = ({ archives, lang, t, onDeleteSession, onExportJSON, onExportCSV, onExportTXT, onExportPDF }) => {
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [selectedArchives, setSelectedArchives] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
 
-    const handleSelectAll = () => {
-        if (selectedSessions.length === oldSessions.length) {
-            setSelectedSessions([]);
-        } else {
-            setSelectedSessions(oldSessions.map(s => s.id!));
-        }
-    };
-
-    const handleSessionToggle = (sessionId: string) => {
-        setSelectedSessions(prev =>
-            prev.includes(sessionId)
-                ? prev.filter(id => id !== sessionId)
-                : [...prev, sessionId]
+    // 🔧 CISCO: Fonctions de gestion de sélection (comme dans ArchiveManagerPanel)
+    const handleArchiveToggle = (archiveId: string) => {
+        setSelectedArchives(prev =>
+            prev.includes(archiveId)
+                ? prev.filter(id => id !== archiveId)
+                : [...prev, archiveId]
         );
     };
 
-    const getSelectedSessionsData = () => {
-        return oldSessions.filter(session => selectedSessions.includes(session.id!));
+    const handleSelectAll = () => {
+        if (selectedArchives.length === archives.length) {
+            setSelectedArchives([]);
+        } else {
+            setSelectedArchives(archives.map(a => a.id!));
+        }
     };
 
+    const getSelectedArchivesData = () => {
+        return archives.filter(archive => selectedArchives.includes(archive.id!));
+    };
+
+    // 🔧 CISCO: Fonctions d'export avec sélection multiple
     const handleExport = async (format: 'json' | 'csv' | 'txt' | 'pdf') => {
-        const sessionsToExport = getSelectedSessionsData();
-        if (sessionsToExport.length === 0) return;
+        const archivesToExport = selectedArchives.length > 0 ? getSelectedArchivesData() : archives;
+        if (archivesToExport.length === 0) return;
 
         setIsExporting(true);
         const filename = `archives_${new Date().toISOString().split('T')[0]}`;
@@ -1464,16 +1828,16 @@ const ArchiveManagerPanel: React.FC<{
         try {
             switch (format) {
                 case 'json':
-                    onExportJSON(sessionsToExport, filename);
+                    onExportJSON(archivesToExport, filename);
                     break;
                 case 'csv':
-                    onExportCSV(sessionsToExport, filename);
+                    onExportCSV(archivesToExport, filename);
                     break;
                 case 'txt':
-                    onExportTXT(sessionsToExport, filename);
+                    onExportTXT(archivesToExport, filename);
                     break;
                 case 'pdf':
-                    onExportPDF(sessionsToExport, filename);
+                    onExportPDF(archivesToExport, filename);
                     break;
             }
         } finally {
@@ -1481,155 +1845,12 @@ const ArchiveManagerPanel: React.FC<{
         }
     };
 
-    const handleDeleteConfirm = async () => {
-        const sessionsToDelete = getSelectedSessionsData();
-        const success = await onDeleteSessions(sessionsToDelete);
-
-        if (success) {
-            setSelectedSessions([]);
-            setShowConfirmDelete(false);
-        }
-    };
-
-    if (oldSessions.length === 0) {
-        return (
-            <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700">
-                <h2 className="text-xl font-semibold mb-4">📤 Export & Archivage</h2>
-                <p className="text-gray-400 text-center py-8">
-                    Aucune session ancienne (90+ jours) trouvée.
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">📤 Export & Archivage</h2>
-                <div className="text-sm text-gray-400">
-                    {oldSessions.length} session{oldSessions.length > 1 ? 's' : ''} ancienne{oldSessions.length > 1 ? 's' : ''} (90+ jours)
-                </div>
-            </div>
-
-            {/* Contrôles de sélection */}
-            <div className="mb-4 flex items-center gap-4">
-                <button
-                    onClick={handleSelectAll}
-                    className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
-                >
-                    {selectedSessions.length === oldSessions.length ? 'Désélectionner tout' : 'Sélectionner tout'}
-                </button>
-                <span className="text-sm text-gray-400">
-                    {selectedSessions.length} session{selectedSessions.length > 1 ? 's' : ''} sélectionnée{selectedSessions.length > 1 ? 's' : ''}
-                </span>
-            </div>
-
-            {/* Boutons d'export */}
-            {selectedSessions.length > 0 && (
-                <div className="mb-6 p-4 bg-gray-700/50 rounded-lg">
-                    <h3 className="text-sm font-medium mb-3">📤 Exporter les sessions sélectionnées :</h3>
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={() => handleExport('json')}
-                            disabled={isExporting}
-                            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm disabled:opacity-50"
-                        >
-                            📄 JSON
-                        </button>
-                        <button
-                            onClick={() => handleExport('csv')}
-                            disabled={isExporting}
-                            className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm disabled:opacity-50"
-                        >
-                            📊 CSV
-                        </button>
-                        <button
-                            onClick={() => handleExport('txt')}
-                            disabled={isExporting}
-                            className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm disabled:opacity-50"
-                        >
-                            📝 TXT
-                        </button>
-                        <button
-                            onClick={() => handleExport('pdf')}
-                            disabled={isExporting}
-                            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm disabled:opacity-50"
-                        >
-                            📋 PDF
-                        </button>
-                        <button
-                            onClick={() => setShowConfirmDelete(true)}
-                            disabled={isExporting}
-                            className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-sm disabled:opacity-50 ml-4"
-                        >
-                            🗑️ Supprimer après export
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Liste des sessions */}
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-                {oldSessions.map(session => (
-                    <div key={session.id} className="flex items-center gap-3 p-3 bg-gray-700/50 rounded">
-                        <input
-                            type="checkbox"
-                            checked={selectedSessions.includes(session.id!)}
-                            onChange={() => handleSessionToggle(session.id!)}
-                            className="w-4 h-4 text-teal-600 bg-gray-700 border-gray-600 rounded focus:ring-teal-500"
-                        />
-                        <div className="flex-1">
-                            <div className="text-sm font-medium">
-                                {formatDate(session.startTime, lang)} - {session.agencyName}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                                Durée: {formatTime(session.totalDurationSeconds)} • {session.logs.length} log{session.logs.length > 1 ? 's' : ''}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Modal de confirmation de suppression */}
-            {showConfirmDelete && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 p-6 rounded-lg max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">⚠️ Confirmer la suppression</h3>
-                        <p className="text-gray-300 mb-6">
-                            Êtes-vous sûr de vouloir supprimer {selectedSessions.length} session{selectedSessions.length > 1 ? 's' : ''} ?
-                            <br /><br />
-                            <strong>Cette action est irréversible.</strong> Assurez-vous d'avoir exporté vos données avant de continuer.
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowConfirmDelete(false)}
-                                className="flex-1 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded"
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                onClick={handleDeleteConfirm}
-                                className="flex-1 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-                            >
-                                Supprimer
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const ArchivesPanel: React.FC<{ archives: Session[], lang: Lang, t: Translations }> = ({ archives, lang, t }) => {
-    const [expandedId, setExpandedId] = useState<string | null>(null);
-
     const generateTxtContent = () => {
         let content = `${t.archivedSessions}\n==================\n\n`;
         archives.forEach(session => {
             content += `${t.date as string}: ${formatDate(session.startTime, lang)}\n`;
             content += `${t.agencyName as string}: ${session.agencyName}\n`;
-            content += `${t.duration as string}: ${formatTime(session.totalDurationSeconds)}\n`;
+            content += `${t.duration as string}: ${formatTimeFromSeconds(session.totalDurationSeconds)}\n`;
             content += `Logs:\n`;
             session.logs.forEach(log => {
                 content += `  - [${formatTimestamp(log.timestamp, lang)}] ${log.note}\n`;
@@ -1639,18 +1860,7 @@ const ArchivesPanel: React.FC<{ archives: Session[], lang: Lang, t: Translations
         return content;
     };
 
-    const exportTxt = () => {
-        const content = generateTxtContent();
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `archives_${new Date().toISOString().split('T')[0]}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+
 
     const sendEmail = () => {
         const subject = encodeURIComponent(t.archivedSessions as string);
@@ -1675,28 +1885,90 @@ const ArchivesPanel: React.FC<{ archives: Session[], lang: Lang, t: Translations
         <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-6 mt-8 border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
                 <h2 className="text-xl sm:text-2xl font-semibold">{t.archivedSessions as string}</h2>
-                <div className="flex flex-wrap gap-2 print:hidden">
-                    <button onClick={exportTxt} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.exportTxt as string}</button>
-                    <button onClick={sendEmail} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.sendEmail as string}</button>
-                    <button onClick={printReport} className="bg-gray-700 hover:bg-gray-600 py-1 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm">{t.print as string}</button>
+
+                {/* 🔧 CISCO: Nouvelle interface d'export avec sélection multiple */}
+                <div className="flex flex-col gap-2 print:hidden">
+                    {/* Contrôles de sélection */}
+                    <div className="flex items-center gap-2 text-sm">
+                        <button
+                            onClick={handleSelectAll}
+                            className="bg-teal-600 hover:bg-teal-700 px-2 py-1 rounded text-xs"
+                        >
+                            {selectedArchives.length === archives.length ? '❌ Tout désélectionner' : '✅ Tout sélectionner'}
+                        </button>
+                        <span className="text-gray-400">
+                            {selectedArchives.length > 0 ? `${selectedArchives.length} sélectionnée(s)` : 'Aucune sélection'}
+                        </span>
+                    </div>
+
+                    {/* Boutons d'export */}
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => handleExport('json')}
+                            disabled={isExporting}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 py-1 px-2 rounded-lg text-xs"
+                        >
+                            📄 JSON
+                        </button>
+                        <button
+                            onClick={() => handleExport('csv')}
+                            disabled={isExporting}
+                            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 py-1 px-2 rounded-lg text-xs"
+                        >
+                            📊 CSV
+                        </button>
+                        <button
+                            onClick={() => handleExport('txt')}
+                            disabled={isExporting}
+                            className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 py-1 px-2 rounded-lg text-xs"
+                        >
+                            📝 TXT
+                        </button>
+                        <button
+                            onClick={() => handleExport('pdf')}
+                            disabled={isExporting}
+                            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 py-1 px-2 rounded-lg text-xs"
+                        >
+                            📋 PDF
+                        </button>
+                        <button onClick={sendEmail} className="bg-purple-600 hover:bg-purple-700 py-1 px-2 rounded-lg text-xs">📧 Email</button>
+                        <button onClick={printReport} className="bg-orange-600 hover:bg-orange-700 py-1 px-2 rounded-lg text-xs">🖨️ Print</button>
+                    </div>
                 </div>
             </div>
             <div className="space-y-2">
                 {archives.map(session => (
                     <div key={session.id} className="bg-gray-700 rounded-lg">
-                        <button
-                            className="w-full flex justify-between items-center p-4 text-left"
-                            onClick={() => setExpandedId(expandedId === session.id ? null : session.id!)}
-                        >
-                            <div className="flex-1">
-                                <p className="font-semibold">{session.agencyName}</p>
-                                <p className="text-sm text-gray-400">{formatDate(session.startTime, lang)}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="font-mono text-teal-400">{formatTime(session.totalDurationSeconds)}</p>
-                                <p className="text-xs text-gray-500">📦 Archivé</p>
-                            </div>
-                        </button>
+                        <div className="flex items-center">
+                            {/* 🔧 CISCO: Checkbox de sélection */}
+                            <input
+                                type="checkbox"
+                                checked={selectedArchives.includes(session.id!)}
+                                onChange={() => handleArchiveToggle(session.id!)}
+                                className="w-4 h-4 m-3 text-teal-600 bg-gray-700 border-gray-600 rounded focus:ring-teal-500"
+                            />
+                            <button
+                                className="flex-1 flex justify-between items-center p-4 text-left"
+                                onClick={() => setExpandedId(expandedId === session.id ? null : session.id!)}
+                            >
+                                <div className="flex-1">
+                                    <p className="font-semibold">{session.agencyName}</p>
+                                    <p className="text-sm text-gray-400">{formatDate(session.startTime, lang)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-mono text-teal-400">{formatTimeFromSeconds(session.totalDurationSeconds)}</p>
+                                    <p className="text-xs text-gray-500">📦 Archivé</p>
+                                </div>
+                            </button>
+                            {/* 🔧 CISCO: Bouton suppression individuelle archive */}
+                            <button
+                                onClick={() => onDeleteSession(session)}
+                                className="p-2 m-2 bg-red-600 hover:bg-red-700 rounded text-xs"
+                                title="Supprimer cette archive"
+                            >
+                                🗑️
+                            </button>
+                        </div>
                         {expandedId === session.id && (
                             <div className="px-4 pb-4 border-t border-gray-600">
                                 <h4 className="font-semibold mb-2 mt-3">{t.activityLog as string}:</h4>
@@ -1737,9 +2009,12 @@ const AppWithLocation: React.FC<{
     exportToCSV: (sessions: Session[], filename: string) => void;
     exportToTXT: (sessions: Session[], filename: string) => void;
     exportToPDF: (sessions: Session[], filename: string) => void;
+    archiveSessions: (sessions: Session[]) => Promise<boolean>;
+    deleteHistorySession: (session: Session) => Promise<boolean>;
     deleteArchivedSessions: (sessions: Session[]) => Promise<boolean>;
+    deleteArchivedSession: (session: Session) => Promise<boolean>;
     logout: () => Promise<void>;
-}> = ({ user, lang, setLang, t, agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives, getOldSessions, exportToJSON, exportToCSV, exportToTXT, exportToPDF, deleteArchivedSessions, logout }) => {
+}> = ({ user, lang, setLang, t, agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives, getOldSessions, exportToJSON, exportToCSV, exportToTXT, exportToPDF, archiveSessions, deleteHistorySession, deleteArchivedSessions, deleteArchivedSession, logout }) => {
     const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
     const [newAgencyName, setNewAgencyName] = useState('');
     const [showAddAgency, setShowAddAgency] = useState(false);
@@ -1748,11 +2023,15 @@ const AppWithLocation: React.FC<{
     const [showAgencySelector, setShowAgencySelector] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
     const [showArchives, setShowArchives] = useState(false);
-    const [showArchiveManager, setShowArchiveManager] = useState(false);
-    
+
+
     const [firstTask, setFirstTask] = useState('');
     const [currentNote, setCurrentNote] = useState('');
     const [currentLogs, setCurrentLogs] = useState<LogEntry[]>([]);
+    // Référence pour garantir la prise en compte immédiate des logs lors de la fin de session
+    const currentLogsRef = useRef<LogEntry[]>([]);
+    useEffect(() => { currentLogsRef.current = currentLogs; }, [currentLogs]);
+
     const [sessionStartTime, setSessionStartTime] = useState<Timestamp | null>(null);
 
     const [showInactivityModal, setShowInactivityModal] = useState(false);
@@ -1773,7 +2052,12 @@ const AppWithLocation: React.FC<{
     // États pour le système audio d'ambiance
     const [audioEnabled, setAudioEnabled] = useState(false); // 🔧 CISCO: Audio désactivé par défaut - activation manuelle
     const [audioVolume, setAudioVolume] = useState(0.5);
-    
+
+    // 🔄 CISCO: États pour la gestion multi-onglets
+    const [multiTabEnabled, setMultiTabEnabled] = useState(true);
+    const [showMultiTabManager, setShowMultiTabManager] = useState(false);
+    const [workingUrl, setWorkingUrl] = useState<string>('');
+
     const [currentBackgroundMode, setCurrentBackgroundMode] = useState('night');
     const [isManualMode, setIsManualMode] = useState(false);
     const { userLocation, locationReady } = useLocation(); // Get location from context
@@ -1874,7 +2158,7 @@ const AppWithLocation: React.FC<{
             startTime: sessionStartTime,
             endTime: Timestamp.now(),
             totalDurationSeconds: elapsedSeconds,
-            logs: currentLogs,
+            logs: currentLogsRef.current,
         };
 
         console.log('💾 Sauvegarde de la session:', sessionData);
@@ -1909,12 +2193,15 @@ const AppWithLocation: React.FC<{
     };
 
     const handleIntermediateEndSession = (note: string) => {
+        let finalLogs = currentLogsRef.current;
         if (note.trim()) {
             const finalLog: LogEntry = {
                 timestamp: Timestamp.now(),
                 note: `[${t.intermediate as string}] ${note}`
             };
-            setCurrentLogs(prev => [...prev, finalLog]);
+            finalLogs = [...finalLogs, finalLog];
+            setCurrentLogs(finalLogs);
+            currentLogsRef.current = finalLogs;
         }
         setShowIntermediateModal(false);
         if (timerMode === 'countdown') {
@@ -1974,6 +2261,11 @@ const AppWithLocation: React.FC<{
     // Gestion de la fin du compte à rebours avec notifications améliorées
     const handleCountdownFinish = () => {
         setShowCountdownFinished(true);
+
+        // 🔊 CISCO: Son de fin de compte à rebours (priorité sur l'ancien système)
+        if (typeof (window as any).playTimerSound === 'function') {
+            (window as any).playTimerSound('countdown_finish');
+        }
 
         // Notification navigateur améliorée
         if (Notification.permission === 'granted') {
@@ -2045,7 +2337,7 @@ const AppWithLocation: React.FC<{
         }
         setShowWelcome(false);
     };
-    
+
     const setupRandomCheck = useCallback(() => {
        if (randomCheckTimerRef.current) clearTimeout(randomCheckTimerRef.current);
        const randomMinutes = Math.floor(Math.random() * (45 - 20 + 1) + 20);
@@ -2091,7 +2383,7 @@ const AppWithLocation: React.FC<{
         }
         setupRandomCheck();
     };
-    
+
     const handleAddNote = () => {
         if (!currentNote.trim() || status === 'stopped') return;
         const newLog: LogEntry = { timestamp: Timestamp.now(), note: currentNote };
@@ -2125,6 +2417,24 @@ const AppWithLocation: React.FC<{
             setShowInactivityModal(true);
         }
     }, [status, forcePause]);
+
+    // 🔄 CISCO: Gestionnaires pour la gestion multi-onglets
+    const handleTabVisibilityChange = useCallback((isVisible: boolean) => {
+        console.log(`👁️ Visibilité onglet changée: ${isVisible ? 'visible' : 'masqué'}`);
+
+        if (!isVisible && status === 'running') {
+            // Onglet masqué mais timer continue - notification optionnelle
+            console.log('🔄 Timer continue en arrière-plan');
+        } else if (isVisible && status === 'running') {
+            // Onglet redevenu visible - synchronisation si nécessaire
+            console.log('👁️ Retour sur onglet - timer toujours actif');
+        }
+    }, [status]);
+
+    const handleWorkingUrlChange = useCallback((url: string) => {
+        setWorkingUrl(url);
+        console.log(`🔗 URL de travail mise à jour: ${url}`);
+    }, []);
 
     useInactivityDetector(handleInactivity, 300000); // 5 minutes
 
@@ -2174,19 +2484,15 @@ const AppWithLocation: React.FC<{
                                     fetchArchives(); // Charger les archives quand on ouvre la section
                                 }
                             }}
-                            onShowArchiveManager={() => {
-                                setShowArchiveManager(!showArchiveManager);
-                            }}
                             showAgencySelector={showAgencySelector}
                             showHistory={showHistory}
                             showArchives={showArchives}
-                            showArchiveManager={showArchiveManager}
                         />
 
-            <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto">
+            <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto pt-48 sm:pt-52 md:pt-56">
                 {/* Timer Dashboard - Affiché seulement si showAgencySelector est true */}
                 {showAgencySelector && (
-                <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-4 sm:p-6 shadow-xl border border-gray-700" style={{ position: 'relative', zIndex: 10 }}>
+                <div className="bg-gray-800/95 backdrop-blur-md rounded-lg p-4 sm:p-6 shadow-xl border border-gray-700 mt-8 sm:mt-12 md:mt-16" style={{ position: 'relative', zIndex: 10 }}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                         {/* Left: Config */}
                         <div>
@@ -2293,17 +2599,11 @@ const AppWithLocation: React.FC<{
                                 </div>
                             )}
 
-                            <div className="font-mono text-gray-200 tracking-wider text-center flex items-baseline justify-center">
+                            <div className="font-mono text-gray-200 tracking-wider text-center">
                                 <span className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl">
                                     {timerMode === 'countdown'
-                                        ? formatTime(countdown.remainingTime).split('.')[0]
-                                        : formatTime(elapsedTime).split('.')[0]
-                                    }
-                                </span>
-                                <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl text-teal-400 ml-1">
-                                    .{timerMode === 'countdown'
-                                        ? formatTime(countdown.remainingTime).split('.')[1]
-                                        : formatTime(elapsedTime).split('.')[1]
+                                        ? formatTime(countdown.remainingTime)
+                                        : formatTime(elapsedTime)
                                     }
                                 </span>
                             </div>
@@ -2324,7 +2624,7 @@ const AppWithLocation: React.FC<{
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Activity Log for current session */}
                     {status !== 'stopped' && (
                         <div className="mt-8 border-t border-gray-700 pt-6">
@@ -2356,34 +2656,29 @@ const AppWithLocation: React.FC<{
                 {/* Session History - Affiché seulement si showHistory est true */}
                 {showHistory && (
                 <div className="printable-area">
-                    <HistoryPanel history={history} lang={lang} t={t} onClearHistory={clearHistory} />
+                    <HistoryPanel history={history} lang={lang} t={t} onClearHistory={clearHistory} onDeleteSession={deleteHistorySession} />
                 </div>
                 )}
 
                 {/* Archives - Affiché seulement si showArchives est true */}
                 {showArchives && (
                 <div className="printable-area">
-                    <ArchivesPanel archives={archives} lang={lang} t={t} />
-                </div>
-                )}
-
-                {/* Gestionnaire d'archives - Affiché seulement si showArchiveManager est true */}
-                {showArchiveManager && (
-                <div className="printable-area">
-                    <ArchiveManagerPanel
-                        oldSessions={getOldSessions()}
+                    <ArchivesPanel
+                        archives={archives}
+                        lang={lang}
+                        t={t}
+                        onDeleteSession={deleteArchivedSession}
                         onExportJSON={exportToJSON}
                         onExportCSV={exportToCSV}
                         onExportTXT={exportToTXT}
                         onExportPDF={exportToPDF}
-                        onDeleteSessions={deleteArchivedSessions}
-                        lang={lang}
-                        t={t}
                     />
                 </div>
                 )}
+
+
             </main>
-            
+
             {/* Modals */}
             {showInactivityModal && (
                  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -2464,7 +2759,7 @@ const AppWithLocation: React.FC<{
                             onClick={() => {
                                 setShowCountdownFinished(false);
                                 // Arrêter le clignotement du titre
-                                document.title = 'Pointeuse d\'Activité Pro';
+                                document.title = 'TimeTracker V4';
                             }}
                             className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg border-2 border-red-400 animate-pulse"
                         >
@@ -2491,7 +2786,7 @@ const AppWithLocation: React.FC<{
                     </div>
                 </div>
             )}
-            
+
             <style>{`
                 @media print {
                   .print\\:hidden { display: none; }
@@ -2552,14 +2847,27 @@ const AppWithLocation: React.FC<{
                   }
                 }
             `}</style>
-                    
+
                     {/* Système d'ambiance sonore - Connecté automatiquement */}
                     <AmbientSoundManager
                         skyMode={currentBackgroundMode}
                         enabled={audioEnabled}
                         volume={audioVolume}
                     />
-                    
+
+                    {/* 🔊 Effets sonores du timer - CISCO */}
+                    <TimerSoundEffects
+                        enabled={audioEnabled}
+                        volume={audioVolume}
+                    />
+
+                    {/* 🔄 CISCO: Gestionnaire multi-onglets */}
+                    <MultiTabManager
+                        enabled={multiTabEnabled}
+                        onVisibilityChange={handleTabVisibilityChange}
+                        onWorkingUrlChange={handleWorkingUrlChange}
+                    />
+
                     <BackgroundInfo />
 
                     {/* Boutons de contrôle repositionnés avec flexbox */}
@@ -2586,7 +2894,7 @@ export default function App() {
     const { user, isLoading, login, logout } = useAuth();
     const [lang, setLang] = useState<Lang>('fr');
     const t = useMemo(() => translations[lang], [lang]);
-    
+
     const {
         agencies,
         addAgency,
@@ -2601,7 +2909,10 @@ export default function App() {
         exportToCSV,
         exportToTXT,
         exportToPDF,
-        deleteArchivedSessions
+        archiveSessions,
+        deleteHistorySession,
+        deleteArchivedSessions,
+        deleteArchivedSession
     } = useFirestore(user?.uid);
 
     if (isLoading) {
@@ -2632,7 +2943,10 @@ export default function App() {
                 exportToCSV={exportToCSV}
                 exportToTXT={exportToTXT}
                 exportToPDF={exportToPDF}
+                archiveSessions={archiveSessions}
+                deleteHistorySession={deleteHistorySession}
                 deleteArchivedSessions={deleteArchivedSessions}
+                deleteArchivedSession={deleteArchivedSession}
                 logout={logout}
             />
         </LocationProvider>
