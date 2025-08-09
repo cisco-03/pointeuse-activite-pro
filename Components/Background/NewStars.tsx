@@ -18,6 +18,9 @@ interface SimpleStar {
 const NewStars: React.FC<NewStarsProps> = ({ skyMode, density = 'high' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<SimpleStar[]>([]);
+  const isMountedRef = useRef(true); // 🔧 CISCO: Vérification montage composant
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // 🔧 CISCO: Debouncing
+  const starsInitializedRef = useRef(false); // 🔧 CISCO: Éviter double initialisation
 
   // 🌟 CISCO: Configuration améliorée - Moins de grosses, plus de micro-étoiles
   const getStarConfig = (density: string, skyMode: string) => {
@@ -86,16 +89,17 @@ const NewStars: React.FC<NewStarsProps> = ({ skyMode, density = 'high' }) => {
     };
   };
 
-  // 🌟 CISCO: Rendu amélioré avec différenciation grosses/micro étoiles
-  const renderStars = () => {
-    if (!containerRef.current) return;
+  // 🌟 CISCO: Initialisation optimisée - Créer les étoiles UNE SEULE FOIS
+  const initializeStars = () => {
+    if (!containerRef.current || !isMountedRef.current || starsInitializedRef.current) return;
 
-    // Nettoyer les anciennes étoiles
+    console.log(`🌟 INITIALISATION UNIQUE des étoiles pour densité ${density}`);
+
+    // Nettoyer les anciennes étoiles si elles existent
     containerRef.current.innerHTML = '';
 
-    const starConfig = getStarConfig(density, skyMode);
+    const starConfig = getStarConfig(density, 'night'); // Toujours créer pour le mode nuit
     const totalStars = starConfig.big + starConfig.micro;
-    console.log(`🌟 Création de ${totalStars} étoiles (${starConfig.big} grosses + ${starConfig.micro} micro) pour mode ${skyMode}`);
 
     if (totalStars === 0) {
       starsRef.current = [];
@@ -117,75 +121,212 @@ const NewStars: React.FC<NewStarsProps> = ({ skyMode, density = 'high' }) => {
     }
 
     starsRef.current = stars;
+    starsInitializedRef.current = true;
 
-    // Rendre chaque étoile dans le DOM avec scintillement différencié
-    stars.forEach((star, index) => {
-      const element = document.createElement('div');
-      const isBigStar = index < starConfig.big;
-      element.className = isBigStar ? 'new-star big-star' : 'new-star micro-star';
-      element.id = `new-star-${star.id}`;
+    // Ajouter les animations CSS une seule fois
+    addStarAnimations();
 
-      // Scintillement différencié selon le type
-      const twinkleDuration = isBigStar
-        ? 3 + Math.random() * 4  // Grosses étoiles : 3-7s (lent)
-        : 1 + Math.random() * 2; // Micro-étoiles : 1-3s (rapide)
-
-      const twinkleDelay = Math.random() * 2; // Délai aléatoire pour désynchroniser
-
-      element.style.cssText = `
-        position: absolute;
-        left: ${star.x}%;
-        top: ${star.y}%;
-        width: ${star.size}px;
-        height: ${star.size}px;
-        background: ${star.color};
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 9999;
-        opacity: ${star.opacity};
-        box-shadow: 0 0 ${star.size * (isBigStar ? 3 : 1.5)}px ${star.color};
-        animation: ${isBigStar ? 'twinkle-big' : 'twinkle-micro'} ${twinkleDuration}s ease-in-out infinite alternate;
-        animation-delay: ${twinkleDelay}s;
-      `;
-
-      containerRef.current!.appendChild(element);
-    });
-
-    // Ajouter l'animation CSS de scintillement
-    if (!document.getElementById('new-stars-animation')) {
-      const style = document.createElement('style');
-      style.id = 'new-stars-animation';
-      style.textContent = `
-        @keyframes twinkle-simple {
-          0% { 
-            opacity: 0.3; 
-            transform: scale(0.8); 
-          }
-          100% { 
-            opacity: 1.0; 
-            transform: scale(1.2); 
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    console.log(`✅ ${starCount} étoiles créées et rendues avec z-index 9999`);
+    // Rendu progressif par batches pour éviter le blocage UI
+    renderStarsProgressively(stars, starConfig);
   };
 
-  // 🌟 CISCO: Réagir aux changements de mode
+  // 🔧 CISCO: Ajout des animations CSS (une seule fois)
+  const addStarAnimations = () => {
+    if (document.getElementById('new-stars-animation')) return; // Déjà ajoutées
+
+    const style = document.createElement('style');
+    style.id = 'new-stars-animation';
+    style.textContent = `
+      @keyframes twinkle-big {
+        0% {
+          opacity: 0.4;
+          transform: scale(0.9);
+          filter: brightness(0.8);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.0);
+          filter: brightness(1.0);
+        }
+        100% {
+          opacity: 1.0;
+          transform: scale(1.1);
+          filter: brightness(1.2);
+        }
+      }
+
+      @keyframes twinkle-micro {
+        0% {
+          opacity: 0.1;
+          transform: scale(0.6);
+          filter: brightness(0.6);
+        }
+        25% {
+          opacity: 0.3;
+          transform: scale(0.8);
+          filter: brightness(0.8);
+        }
+        75% {
+          opacity: 0.6;
+          transform: scale(1.0);
+          filter: brightness(1.0);
+        }
+        100% {
+          opacity: 0.8;
+          transform: scale(1.2);
+          filter: brightness(1.3);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
+  // 🚀 CISCO: Rendu progressif par batches (évite blocage UI)
+  const renderStarsProgressively = (stars: SimpleStar[], starConfig: { big: number; micro: number }) => {
+    if (!containerRef.current || !isMountedRef.current) return;
+
+    const BATCH_SIZE = 20; // Créer 20 étoiles par batch
+    let currentIndex = 0;
+
+    const renderBatch = () => {
+      if (!containerRef.current || !isMountedRef.current) return;
+
+      const endIndex = Math.min(currentIndex + BATCH_SIZE, stars.length);
+
+      for (let i = currentIndex; i < endIndex; i++) {
+        const star = stars[i];
+        const element = document.createElement('div');
+        const isBigStar = i < starConfig.big;
+
+        element.className = isBigStar ? 'new-star big-star' : 'new-star micro-star';
+        element.id = `new-star-${star.id}`;
+
+        // Scintillement différencié selon le type
+        const twinkleDuration = isBigStar
+          ? 3 + Math.random() * 4  // Grosses étoiles : 3-7s (lent)
+          : 1 + Math.random() * 2; // Micro-étoiles : 1-3s (rapide)
+
+        const twinkleDelay = Math.random() * 2; // Délai aléatoire pour désynchroniser
+
+        element.style.cssText = `
+          position: absolute;
+          left: ${star.x}%;
+          top: ${star.y}%;
+          width: ${star.size}px;
+          height: ${star.size}px;
+          background: ${star.color};
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 9999;
+          opacity: ${skyMode === 'night' ? star.opacity : 0};
+          box-shadow: 0 0 ${star.size * (isBigStar ? 3 : 1.5)}px ${star.color};
+          animation: ${isBigStar ? 'twinkle-big' : 'twinkle-micro'} ${twinkleDuration}s ease-in-out infinite alternate;
+          animation-delay: ${twinkleDelay}s;
+          transition: opacity 0.5s ease;
+        `;
+
+        containerRef.current.appendChild(element);
+      }
+
+      currentIndex = endIndex;
+
+      // Continuer avec le prochain batch si nécessaire
+      if (currentIndex < stars.length && isMountedRef.current) {
+        requestAnimationFrame(renderBatch);
+      } else {
+        console.log(`✅ ${stars.length} étoiles créées progressivement (${starConfig.big} grosses + ${starConfig.micro} micro)`);
+      }
+    };
+
+    // Démarrer le rendu progressif
+    requestAnimationFrame(renderBatch);
+  };
+
+  // 🔧 CISCO: Contrôle de visibilité optimisé (sans recréation)
+  const updateStarsVisibility = (targetSkyMode: string) => {
+    if (!containerRef.current || !isMountedRef.current) return;
+
+    const starElements = containerRef.current.querySelectorAll('.new-star');
+    const shouldBeVisible = targetSkyMode === 'night';
+
+    console.log(`🌟 Mise à jour visibilité ${starElements.length} étoiles pour mode ${targetSkyMode}: ${shouldBeVisible ? 'VISIBLE' : 'MASQUÉ'}`);
+
+    starElements.forEach((element: Element) => {
+      const htmlElement = element as HTMLElement;
+      const starId = parseInt(htmlElement.id.replace('new-star-', ''));
+      const star = starsRef.current.find(s => s.id === starId);
+
+      if (star) {
+        // Transition douce de visibilité
+        htmlElement.style.opacity = shouldBeVisible ? star.opacity.toString() : '0';
+      }
+    });
+  };
+
+  // 🔧 CISCO: Debouncing pour éviter les appels multiples rapides
+  const debouncedUpdateVisibility = (targetSkyMode: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        updateStarsVisibility(targetSkyMode);
+      }
+    }, 100); // Délai de 100ms pour debouncing
+  };
+
+  // 🌟 CISCO: Initialisation une seule fois au montage
+  useEffect(() => {
+    console.log(`🌟 NewStars: Initialisation pour densité ${density}`);
+    initializeStars();
+
+    return () => {
+      // Nettoyage au démontage
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [density]); // Seulement quand la densité change
+
+  // 🌟 CISCO: Réagir aux changements de mode (optimisé)
   useEffect(() => {
     console.log(`🌟 NewStars: Mode changé vers ${skyMode}`);
-    renderStars();
-  }, [skyMode, density]);
 
-  // 🌟 CISCO: Nettoyage au démontage
+    if (starsInitializedRef.current) {
+      // Étoiles déjà créées, juste changer la visibilité
+      debouncedUpdateVisibility(skyMode);
+    } else {
+      // Première fois, initialiser si nécessaire
+      if (skyMode === 'night') {
+        initializeStars();
+      }
+    }
+  }, [skyMode]); // Seulement skyMode, pas density
+
+  // 🌟 CISCO: Nettoyage complet au démontage
   useEffect(() => {
     return () => {
+      console.log('🧹 NewStars: Nettoyage au démontage');
+
+      // Marquer comme démonté
+      isMountedRef.current = false;
+
+      // Nettoyer le timer de debouncing
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+
+      // Nettoyer les animations CSS
       const style = document.getElementById('new-stars-animation');
       if (style) {
         style.remove();
       }
+
+      // Réinitialiser les flags
+      starsInitializedRef.current = false;
+      starsRef.current = [];
     };
   }, []);
 
