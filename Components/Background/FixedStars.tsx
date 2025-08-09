@@ -20,37 +20,39 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
   const containerRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<Star[]>([]);
   const animationsRef = useRef<gsap.core.Timeline[]>([]);
+  const activeStarsRef = useRef<Set<number>>(new Set()); // 🔧 CISCO: Étoiles actuellement visibles
+  const rotationTimerRef = useRef<NodeJS.Timeout | null>(null); // 🔧 CISCO: Timer pour rotation
 
-  // Configuration selon la densité demandée - AVEC ULTRA-MICRO ÉTOILES
+  // 🔧 CISCO: Configuration OPTIMISÉE - Rotation progressive des étoiles
   const getDensityConfig = (skyMode: string) => {
     const isDeepNight = skyMode === 'night';
 
     if (isDeepNight) {
-      // NUIT PROFONDE : CISCO - BEAUCOUP plus de micro-étoiles comme demandé !
+      // NUIT PROFONDE : CISCO - OPTIMISÉ pour rotation progressive
       return {
-        low: { 'ultra-micro': 300, micro: 200, small: 40, medium: 15, large: 5 },
-        medium: { 'ultra-micro': 600, micro: 400, small: 80, medium: 25, large: 8 },
-        high: { 'ultra-micro': 1000, micro: 600, small: 120, medium: 50, large: 25 } // 🔧 CISCO: Davantage de grosses étoiles (medium: 50, large: 25)
+        low: { 'ultra-micro': 50, micro: 30, small: 15, medium: 8, large: 3 },      // Total: 106
+        medium: { 'ultra-micro': 80, micro: 50, small: 25, medium: 12, large: 5 },  // Total: 172
+        high: { 'ultra-micro': 120, micro: 80, small: 40, medium: 20, large: 10 }   // Total: 270 - RÉDUIT pour performance
       };
     } else {
-      // AUTRES MODES : Configuration normale sans ultra-micro
+      // AUTRES MODES : Aucune étoile visible
       return {
-        low: { 'ultra-micro': 0, micro: 50, small: 20, medium: 8, large: 3 },
-        medium: { 'ultra-micro': 0, micro: 120, small: 40, medium: 15, large: 5 },
-        high: { 'ultra-micro': 0, micro: 250, small: 80, medium: 25, large: 8 }
+        low: { 'ultra-micro': 0, micro: 0, small: 0, medium: 0, large: 0 },
+        medium: { 'ultra-micro': 0, micro: 0, small: 0, medium: 0, large: 0 },
+        high: { 'ultra-micro': 0, micro: 0, small: 0, medium: 0, large: 0 }
       };
     }
   };
 
-  // Visibilité selon le mode du ciel
+  // 🚨 CISCO: CORRECTION URGENTE - Visibilité selon le mode du ciel
   const getVisibility = (skyMode: string): number => {
     switch (skyMode) {
-      case 'night': return 1.0;
-      case 'dusk': return 0.8;
-      case 'sunset': return 0.6;
-      case 'dawn': return 0.4;
-      case 'evening': return 0.7;
-      default: return 0.1; // Presque invisibles en journée
+      case 'night': return 1.0; // Seul mode où les étoiles sont visibles
+      case 'dusk': return 0.0;   // 🚨 CISCO: INVISIBLE en crépuscule
+      case 'sunset': return 0.0; // 🚨 CISCO: INVISIBLE au coucher
+      case 'dawn': return 0.0;   // 🚨 CISCO: INVISIBLE à l'aube
+      case 'evening': return 0.0; // 🚨 CISCO: INVISIBLE le soir
+      default: return 0.0; // 🚨 CISCO: INVISIBLE en journée (matin, midi, après-midi)
     }
   };
 
@@ -149,7 +151,14 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
 
     containerRef.current.appendChild(element);
 
-    // 🔧 CISCO: Animation de scintillement TRÈS VISIBLE et naturelle
+    // 🔧 CISCO: ÉTOILES OPTIMISÉES - Statiques avec rotation progressive
+    gsap.set(element, {
+      opacity: star.brightness, // CISCO: Commencer VISIBLE avec luminosité naturelle
+      scale: 1,
+      boxShadow: `0 0 ${star.size * 1.5}px ${getStarColor(star.type, star.brightness * 0.6)}`
+    });
+
+    // 🌟 CISCO: ANIMATION DE SCINTILLEMENT - Timeline infinie
     const timeline = gsap.timeline({ repeat: -1, yoyo: true });
 
     // 🌟 CISCO: Scintillement BEAUCOUP plus prononcé et visible
@@ -245,8 +254,18 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
     console.log(`⭐ Visibilité initiale appliquée: ${initialVisibility} pour mode ${skyMode}`);
   };
 
-  // Nettoyage des étoiles
+  // 🚨 CISCO: NETTOYAGE D'URGENCE - ARRÊT TOTAL des animations
   const cleanupStars = () => {
+    console.log('🚨 NETTOYAGE D\'URGENCE: Arrêt de toutes les animations d\'étoiles');
+
+    // 🚨 CISCO: ARRÊT BRUTAL de toutes les animations GSAP sur les étoiles
+    if (containerRef.current) {
+      const starElements = containerRef.current.querySelectorAll('.fixed-star');
+      starElements.forEach(element => {
+        gsap.killTweensOf(element); // Arrêter les animations de chaque étoile
+      });
+    }
+
     // Stopper toutes les animations
     animationsRef.current.forEach(timeline => timeline.kill());
     animationsRef.current = [];
@@ -258,6 +277,72 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
     }
 
     starsRef.current = [];
+
+    console.log('✅ NETTOYAGE TERMINÉ: Toutes les animations d\'étoiles arrêtées');
+  };
+
+  // 🔧 CISCO: SYSTÈME DE ROTATION PROGRESSIVE - Optimisation CPU
+  const startStarRotation = () => {
+    if (skyMode !== 'night') return;
+
+    const BATCH_SIZE = 15; // Nombre d'étoiles visibles simultanément
+    const ROTATION_INTERVAL = 3000; // 3 secondes entre les rotations
+
+    const rotateStars = () => {
+      if (!containerRef.current || skyMode !== 'night') return;
+
+      const allStars = containerRef.current.querySelectorAll('.fixed-star');
+      if (allStars.length === 0) return;
+
+      // Masquer les étoiles actuellement visibles
+      activeStarsRef.current.forEach(index => {
+        const star = allStars[index];
+        if (star) {
+          gsap.to(star, { opacity: 0, duration: 1, ease: "power2.inOut" });
+        }
+      });
+
+      // Sélectionner de nouvelles étoiles aléatoirement
+      const newActiveStars = new Set<number>();
+      while (newActiveStars.size < Math.min(BATCH_SIZE, allStars.length)) {
+        const randomIndex = Math.floor(Math.random() * allStars.length);
+        newActiveStars.add(randomIndex);
+      }
+
+      // Afficher les nouvelles étoiles après un délai
+      setTimeout(() => {
+        newActiveStars.forEach(index => {
+          const star = allStars[index];
+          if (star) {
+            const starData = starsRef.current[index];
+            if (starData) {
+              gsap.to(star, {
+                opacity: starData.brightness,
+                duration: 1.5,
+                ease: "power2.out"
+              });
+            }
+          }
+        });
+
+        activeStarsRef.current = newActiveStars;
+      }, 1000);
+    };
+
+    // Première rotation immédiate
+    rotateStars();
+
+    // Rotation continue
+    rotationTimerRef.current = setInterval(rotateStars, ROTATION_INTERVAL);
+  };
+
+  // 🔧 CISCO: Arrêter la rotation des étoiles
+  const stopStarRotation = () => {
+    if (rotationTimerRef.current) {
+      clearInterval(rotationTimerRef.current);
+      rotationTimerRef.current = null;
+    }
+    activeStarsRef.current.clear();
   };
 
   // 🔧 CISCO: Mise à jour de la visibilité - CORRECTION ERREUR
@@ -297,40 +382,51 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
   // 🔧 CISCO: Initialisation au montage seulement (pas de régénération sur skyMode)
   useEffect(() => {
     initializeStars();
-    return cleanupStars;
+    return () => {
+      stopStarRotation();
+      cleanupStars();
+    };
   }, [density]); // Régénérer seulement quand la densité change
 
-  // 🔧 CISCO: Mise à jour de la visibilité quand le mode change avec transition progressive
+  // 🔧 CISCO: CORRECTION URGENTE - Visibilité simple et directe
   useEffect(() => {
-    // Délai pour s'assurer que les étoiles sont créées avant la transition
-    const timer = setTimeout(() => {
-      console.log(`🌌 FixedStars: Transition vers mode ${skyMode}`);
+    console.log(`🌌 FixedStars: Transition vers mode ${skyMode}`);
 
-      // 🔧 CISCO: DÉBOGAGE - Vérifier l'état des étoiles avant transition
+    if (skyMode === 'night') {
+      // Mode nuit : TOUTES les étoiles visibles avec leur luminosité naturelle
+      console.log('⭐ AFFICHAGE IMMÉDIAT de toutes les étoiles');
+
       if (containerRef.current) {
         const starElements = containerRef.current.querySelectorAll('.fixed-star');
-        console.log(`🔍 DÉBOGAGE: ${starElements.length} étoiles trouvées dans le DOM`);
+        console.log(`⭐ ${starElements.length} étoiles trouvées, rendu visible`);
 
-        // Vérifier quelques étoiles pour diagnostic
-        starElements.forEach((element, index) => {
-          if (index < 3) { // Vérifier les 3 premières étoiles
-            const htmlElement = element as HTMLElement;
-            console.log(`🔍 Étoile ${index}: opacity=${htmlElement.style.opacity}, display=${htmlElement.style.display}, z-index=${getComputedStyle(htmlElement).zIndex}`);
+        starElements.forEach((element: Element, index: number) => {
+          const htmlElement = element as HTMLElement;
+          const star = starsRef.current[index];
+          if (star) {
+            // Rendre visible avec la luminosité naturelle de l'étoile
+            gsap.set(htmlElement, { opacity: star.brightness });
           }
         });
       }
+    } else {
+      // Autres modes : masquer toutes les étoiles
+      console.log('🌙 Masquage des étoiles pour mode non-nuit');
 
-      updateVisibility(15.0); // Utiliser la même durée que les transitions du background
-    }, 100); // Délai de 100ms pour éviter les conflits de timing
-
-    return () => clearTimeout(timer);
+      if (containerRef.current) {
+        const starElements = containerRef.current.querySelectorAll('.fixed-star');
+        starElements.forEach((element: Element) => {
+          gsap.set(element as HTMLElement, { opacity: 0 });
+        });
+      }
+    }
   }, [skyMode]);
 
   return (
     <div
       ref={containerRef}
       className="fixed absolute inset-0 overflow-hidden pointer-events-none"
-      style={{ zIndex: 7 }} // 🔧 CISCO: Étoiles derrière la lune (z-index 7)
+      style={{ zIndex: 10 }} // 🔧 CISCO: Étoiles VISIBLES au-dessus du paysage (z-index 10)
     />
   );
 };

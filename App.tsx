@@ -2053,16 +2053,18 @@ const AppWithLocation: React.FC<{
     const [showMultiTabManager, setShowMultiTabManager] = useState(false);
     const [, setWorkingUrl] = useState<string>('');
 
-    // 🔧 CISCO: Mode par défaut = 12h (midday) - Mode manuel uniquement
+    // 🔧 CISCO: Mode par défaut = 12h (midday) - ESCLAVE des clics utilisateur
     const [currentBackgroundMode, setCurrentBackgroundMode] = useState('midday');
+    const [userHasClicked, setUserHasClicked] = useState(false); // 🔧 CISCO: Détecter si l'utilisateur a cliqué
 
     // 🔧 CISCO: SUPPRESSION COMPLÈTE - Plus de fonction automatique
     // const getModeForTime = ... // SUPPRIMÉ
     // useEffect automatique // SUPPRIMÉ
 
-    // 🔧 CISCO: Gestionnaire de changement de mode - Mode manuel uniquement
+    // 🔧 CISCO: Gestionnaire de changement de mode - MAÎTRE sur le mode par défaut
     const handleSetMode = (mode: string) => {
-        console.log(`🎯 Changement de mode manuel: ${mode}`);
+        console.log(`🎯 Changement de mode manuel: ${mode} - UTILISATEUR MAÎTRE`);
+        setUserHasClicked(true); // 🔧 CISCO: Marquer que l'utilisateur a pris le contrôle
         setCurrentBackgroundMode(mode);
     };
 

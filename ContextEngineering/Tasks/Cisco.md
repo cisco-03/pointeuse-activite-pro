@@ -9,9 +9,7 @@ ContextEngineering\Tasks\Cisco.md
 - 
 
 **Tâche 2 :**
-- Je regarde dans la console de log, comment s'est-il que vous avez dupliqué des nuages ? Je vous avais dit dès le début, vous n'avez pas respecté les instructions, je vous ai dit d'utiliser que la vingtaine de nuages, plus ou moins, pour l'utilisation. Là le problème c'est que quand je regarde dans la console, vous prenez le même nuage et vous le dupliquez. C'est normal que l'application a ralenti  
-
-- Gros problème de ralentissement au niveau de l'application, je doute qu'à mon avis, soit c'est un conflit, soit c'est des nuages. 
+- 
 
 
 

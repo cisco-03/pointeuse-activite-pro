@@ -12,12 +12,22 @@ const MoonAnimation: React.FC<MoonAnimationProps> = ({ isNightMode, currentMode 
   const animationRef = useRef<gsap.core.Timeline | null>(null);
   const fadeOutRef = useRef<gsap.core.Tween | null>(null);
   const isAnimatingRef = useRef<boolean>(false); // 🔧 CISCO: Protection contre les déclenchements multiples
+  const hasAnimatedRef = useRef<boolean>(false); // 🔧 CISCO: Empêcher les re-animations
 
   useEffect(() => {
     if (!moonRef.current || !haloRef.current) return;
 
+    // 🔧 CISCO: DÉBOGAGE - Tracer tous les déclenchements du useEffect
+    console.log(`🌙 MoonAnimation useEffect déclenché: isNightMode=${isNightMode}, currentMode=${currentMode}, isAnimating=${isAnimatingRef.current}`);
+
     // 🌙 CISCO: Mode Nuit profonde - Apparition et descente de la lune
     if (isNightMode && currentMode === 'night') {
+      // 🔧 CISCO: PROTECTION ABSOLUE - Une seule animation par session
+      if (hasAnimatedRef.current) {
+        console.log('🌙 Animation lune déjà effectuée cette session - AUCUNE répétition');
+        return;
+      }
+
       // 🔧 CISCO: PROTECTION RENFORCÉE - Éviter les déclenchements multiples
       if (isAnimatingRef.current) {
         console.log('🌙 Animation lune déjà en cours (protection renforcée) - éviter le redémarrage');
@@ -30,8 +40,9 @@ const MoonAnimation: React.FC<MoonAnimationProps> = ({ isNightMode, currentMode 
         return;
       }
 
-      console.log('🌙 DÉMARRAGE animation lune - Mode nuit profonde confirmé');
+      console.log('🌙 DÉMARRAGE animation lune - Mode nuit profonde confirmé - PREMIÈRE FOIS');
       isAnimatingRef.current = true; // 🔧 CISCO: Marquer comme en cours d'animation
+      hasAnimatedRef.current = true; // 🔧 CISCO: Marquer comme déjà animé
 
       // Arrêter toute animation en cours
       if (animationRef.current) {
@@ -62,37 +73,22 @@ const MoonAnimation: React.FC<MoonAnimationProps> = ({ isNightMode, currentMode 
         display: 'block'
       });
 
-      // 🔧 CISCO: Timeline avec DÉLAI pour synchronisation avec dégradé
+      // 🔧 CISCO: Timeline SANS DÉLAI - Animation immédiate
       animationRef.current = gsap.timeline({
-        delay: 15, // 🔧 CISCO: Attendre 15 secondes - fin du dégradé de nuit
         onComplete: () => {
           console.log('🌙 Animation lune terminée - Libération du verrou');
           isAnimatingRef.current = false; // 🔧 CISCO: Libérer le verrou à la fin
         }
       });
 
-      // 🌙 CISCO: Phase 1: Apparition APRÈS le dégradé complet
-      animationRef.current.to(moonRef.current, {
-        opacity: 1.0,
-        duration: 5, // Plus lent pour apparition naturelle
-        ease: "power2.out"
-      });
+      // 🔧 CISCO: Position initiale VISIBLE - Lune commence directement visible
+      gsap.set(moonRef.current, { opacity: 1.0 });
+      gsap.set(haloRef.current, { opacity: 0.25 });
 
-      // Apparition du halo synchronisée
-      animationRef.current.to(haloRef.current, {
-        opacity: 0.25,
-        duration: 5,
-        ease: "power2.out"
-      }, 0);
-
-      // 🔧 CISCO: Phase 2: Trajectoire diagonale CORRIGÉE - Lune vient du HAUT
-      // Position initiale HORS ÉCRAN en haut, puis descente diagonale
-      // Durée : 600 secondes (10 minutes) pour mouvement très lent
-
-      // 🌙 CISCO: Animation lune - Trajectoire diagonale du HAUT vers BAS-DROITE
-      animationRef.current.to(moonRef.current, {
+      // 🌙 CISCO: SEULE ANIMATION - Trajectoire diagonale du HAUT vers BAS-DROITE
+      animationRef.current.to([moonRef.current, haloRef.current], {
         keyframes: [
-          // Lune commence HORS ÉCRAN en haut-gauche et descend en diagonale
+          // Lune + Halo commencent HORS ÉCRAN en haut-gauche et descendent en diagonale
           { x: '5vw', y: '-5vh', duration: 0 },     // HORS ÉCRAN - haut-gauche
           { x: '15vw', y: '2vh', duration: 0.1 },   // Entre dans l'écran
           { x: '25vw', y: '8vh', duration: 0.2 },   // Descente diagonale
@@ -104,30 +100,18 @@ const MoonAnimation: React.FC<MoonAnimationProps> = ({ isNightMode, currentMode 
           { x: '85vw', y: '65vh', duration: 0.85 }, // Descente finale
           { x: '95vw', y: '75vh', duration: 1.0 }   // Sort par bas-droite
         ],
-        duration: 600, // 🔧 CISCO: 10 minutes - très lent et naturel
+        duration: 900, // 🔧 CISCO: 15 minutes - plus lent et naturel
         ease: "none", // Vitesse constante pour réalisme astronomique
         transformOrigin: "center center"
-      }, 5); // Commence après apparition complète (5s)
-
-      // 🌙 CISCO: Halo suit exactement la même trajectoire
-      animationRef.current.to(haloRef.current, {
-        keyframes: [
-          { x: '5vw', y: '-5vh', duration: 0 },
-          { x: '15vw', y: '2vh', duration: 0.1 },
-          { x: '25vw', y: '8vh', duration: 0.2 },
-          { x: '35vw', y: '15vh', duration: 0.3 },
-          { x: '45vw', y: '25vh', duration: 0.4 },
-          { x: '55vw', y: '35vh', duration: 0.5 },
-          { x: '65vw', y: '45vh', duration: 0.6 },
-          { x: '75vw', y: '55vh', duration: 0.7 },
-          { x: '85vw', y: '65vh', duration: 0.85 },
-          { x: '95vw', y: '75vh', duration: 1.0 }
-        ],
-        duration: 600,
-        ease: "none"
-      }, 5);
+      }); // 🔧 CISCO: Animation immédiate, plus de délai
 
     } else if (!isNightMode && currentMode !== 'night') {
+      console.log('🌙 Mode non-nuit détecté - Arrêt et disparition de la lune');
+
+      // 🔧 CISCO: Libérer TOUS les verrous d'animation
+      isAnimatingRef.current = false;
+      hasAnimatedRef.current = false; // 🔧 CISCO: CORRECTION - Permettre nouvelle animation si retour mode nuit
+
       // Arrêter l'animation de descente
       if (animationRef.current) {
         animationRef.current.kill();

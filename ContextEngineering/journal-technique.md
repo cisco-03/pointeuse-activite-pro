@@ -4126,4 +4126,93 @@ console.log(`🦉 Hibou répété après ${Math.round(randomDelay/1000)}s`);
 5. **Nuages** : Vérifier qu'ils s'affichent et se déplacent lentement
 
 ---
-*Dernière mise à jour : 09/08/2025 - Version 5.1.1 - CORRECTIONS URGENTES SYNCHRONISATION*
+
+## 🚨 **CORRECTION URGENTE - ÉTOILES INVISIBLES + NUAGES DUPLIQUÉS**
+**Date** : 09/01/2025 - 15:45
+**Problème** : Console spam + étoiles invisibles malgré système fonctionnel
+**Cause** : Étoiles initialisées avec `opacity: 0` + logs de debug excessifs
+
+### 🔧 **CORRECTIONS APPLIQUÉES**
+
+#### ⭐ **1. Étoiles Rendues VISIBLES**
+**Fichier** : `Components/Background/FixedStars.tsx` (lignes 154-159)
+**Problème** : Étoiles initialisées avec `opacity: 0` et jamais rendues visibles
+**Solution** :
+```typescript
+// AVANT (CASSÉ)
+gsap.set(element, {
+  opacity: 0, // Commencer invisible ❌
+  scale: 1,
+  boxShadow: 'none'
+});
+
+// APRÈS (CORRIGÉ)
+gsap.set(element, {
+  opacity: star.brightness, // CISCO: Commencer VISIBLE ✅
+  scale: 1,
+  boxShadow: `0 0 ${star.size * 1.5}px ${getStarColor(star.type, star.brightness * 0.6)}`
+});
+```
+
+#### 🌟 **2. Z-Index Étoiles Optimisé**
+**Fichier** : `Components/Background/FixedStars.tsx` (ligne 429)
+**Changement** : `zIndex: 7` → `zIndex: 10` pour visibilité au-dessus du paysage
+
+#### ☁️ **3. Anti-Duplication Nuages**
+**Fichier** : `Components/Background/DiurnalLayer.tsx` (lignes 146-150)
+**Problème** : Nuages créés à chaque re-render
+**Solution** : Vérification `containerRef.current.children.length > 0` avant création
+
+#### 🧹 **4. Nettoyage Console**
+**Fichiers** : `DiurnalLayer.tsx` (multiples lignes)
+**Action** : Suppression logs debug excessifs pour console propre
+- Supprimé : `console.log('☁️ GÉNÉRATION NUAGES...')`
+- Supprimé : `console.log('🌤️ Chargement nuage...')`
+- Supprimé : `console.log('✅ Nuage X chargé...')`
+- Conservé : Logs d'erreur uniquement
+
+### 🎯 **RÉSULTATS ATTENDUS**
+- ✅ **Étoiles VISIBLES** en mode nuit avec scintillement dramatique
+- ✅ **Console propre** sans spam de logs de nuages
+- ✅ **Nuages uniques** sans duplication
+- ✅ **Performance optimisée** avec moins de logs
+
+### 📁 **Fichiers Modifiés**
+- `Components/Background/FixedStars.tsx` : Étoiles visibles + z-index optimisé
+- `Components/Background/DiurnalLayer.tsx` : Anti-duplication + nettoyage logs
+
+---
+
+## 📅 **2025-08-09 - CORRECTION CRITIQUE ANIMATION LUNE** *(Session Cisco)*
+
+### 🌙 **PROBLÈME RÉSOLU - Lune ne réapparaît pas**
+
+#### 🔍 **Symptôme**
+- Lune s'anime correctement la première fois en mode nuit
+- Si on change de mode puis revient au mode nuit : **lune ne réapparaît plus**
+- Problème persistant malgré les corrections précédentes
+
+#### 🎯 **Cause Racine Identifiée**
+**Fichier** : `Components/UI/MoonAnimation.tsx` (ligne 145)
+- **Protection excessive** : `hasAnimatedRef.current = true` n'était jamais réinitialisé
+- **Verrou permanent** : Une fois animée, la lune ne pouvait plus jamais se réanimer
+- **Logique défaillante** : Seul `isAnimatingRef.current` était réinitialisé, pas `hasAnimatedRef.current`
+
+#### ✅ **Solution Appliquée**
+**Modification** : Ligne 146 ajoutée
+```typescript
+// 🔧 CISCO: Libérer TOUS les verrous d'animation
+isAnimatingRef.current = false;
+hasAnimatedRef.current = false; // 🔧 CISCO: CORRECTION - Permettre nouvelle animation si retour mode nuit
+```
+
+#### 📁 **Fichier Modifié**
+- ✅ `Components/UI/MoonAnimation.tsx` : Ligne 146 ajoutée
+
+#### 🎯 **Résultat Attendu**
+- ✅ Lune peut maintenant se réanimer à chaque retour en mode nuit
+- ✅ Protection contre les animations multiples conservée
+- ✅ Logique de réinitialisation complète et cohérente
+
+---
+*Dernière mise à jour : 09/08/2025 - Version 5.1.2 - CORRECTION LUNE RÉANIMATION*

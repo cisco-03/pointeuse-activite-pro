@@ -60,10 +60,23 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
     // 🔧 CISCO: Collection corrigée - Nuages existants uniquement (48, 50-70)
     const availableCloudNumbers = [48, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]; // 22 nuages disponibles
 
+    // 🔧 CISCO: CORRECTION CRITIQUE - Copie de la liste pour éviter les duplications
+    const remainingCloudNumbers = [...availableCloudNumbers];
+
     for (let i = 0; i < cloudCount; i++) {
-      // 🔧 CISCO: Sélection aléatoire dans la nouvelle collection
-      const randomIndex = Math.floor(Math.random() * availableCloudNumbers.length);
-      const cloudNumber = availableCloudNumbers[randomIndex];
+      // 🔧 CISCO: CORRECTION - Sélection UNIQUE sans duplication
+      if (remainingCloudNumbers.length === 0) {
+        console.warn('⚠️ Plus de nuages uniques disponibles, arrêt de la génération');
+        break;
+      }
+
+      const randomIndex = Math.floor(Math.random() * remainingCloudNumbers.length);
+      const cloudNumber = remainingCloudNumbers[randomIndex];
+
+      // 🔧 CISCO: RETIRER le nuage sélectionné pour éviter les duplications
+      remainingCloudNumbers.splice(randomIndex, 1);
+
+      console.log(`☁️ Nuage unique sélectionné: cloud_${cloudNumber}.png (${remainingCloudNumbers.length} restants)`);
 
       // 🔧 CISCO: Tailles optimisées pour nuages haute qualité
       const sizeCategory = Math.random();
@@ -109,6 +122,15 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
       }
     }
 
+    // 🔧 CISCO: VÉRIFICATION - Aucune duplication de nuages
+    const cloudNumbers = clouds.map(cloud => cloud.cloudNumber);
+    const uniqueCloudNumbers = [...new Set(cloudNumbers)];
+
+    // Vérification silencieuse des duplications
+    if (cloudNumbers.length !== uniqueCloudNumbers.length) {
+      console.error(`❌ DUPLICATION NUAGES DÉTECTÉE! ${cloudNumbers.length - uniqueCloudNumbers.length} doublons`);
+    }
+
     return clouds;
   };
 
@@ -116,6 +138,12 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // CISCO: Éviter la duplication - vérifier si déjà initialisé
+    if (containerRef.current.children.length > 0) {
+      return;
+    }
+
+    // Génération des nuages uniques
     const clouds = generateClouds();
 
     // Nettoyer le conteneur existant
@@ -125,7 +153,7 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
       // 🔧 CISCO: Nouvelle collection haute qualité - Sélection par numéro
       const imageSrc = `/Clouds/cloud_${cloud.cloudNumber}.png`;
 
-      console.log(`🌤️ Chargement nuage haute qualité: cloud_${cloud.cloudNumber}.png`);
+      // Chargement nuage haute qualité
 
       // 🔧 CISCO: Chargement robuste avec vérification préalable
       const img = new Image();
@@ -173,7 +201,7 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
 
         cloudElement.appendChild(imgElement);
         containerRef.current?.appendChild(cloudElement);
-        console.log(`✅ Nuage ${cloud.cloudNumber} chargé et ajouté`);
+        // Nuage chargé avec succès
       };
 
       img.onerror = () => {
