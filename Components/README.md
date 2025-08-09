@@ -8,35 +8,34 @@
 - **`DiurnalLayer.tsx`** - Couche diurne (nuages)
 - **`LoginBackground.tsx`** - Background de la page de connexion
 
-### 🕐 `/Context/` - Contextes React
-- **`TimeContext.tsx`** - Gestion du temps (réel/simulé)
-- **`LocationContext.tsx`** - Gestion de la géolocalisation GPS
-
 ### 🎨 `/UI/` - Composants d'Interface
-- **`BackgroundInfo.tsx`** - Affichage des informations de background
-- **`TimeSimulator.tsx`** - Simulateur de temps pour tests
+- **`BackgroundInfo.tsx`** - ❌ DÉSACTIVÉ (plus d'automatisation)
+- **`SlideFooter.tsx`** - Footer avec liens sociaux
 
-### 🧪 `/Testing/` - Composants de Test
-- **`LocationTestButton.tsx`** - Bouton de test de localisation
-- **`LocationTester.tsx`** - Testeur complet de géolocalisation
+### 🔧 **SIMPLIFICATION CISCO**
+- ❌ **`/Context/`** - SUPPRIMÉ (plus de contextes GPS/temps)
+- ❌ **`/Testing/`** - SUPPRIMÉ (plus de tests GPS)
+- ❌ **`TimeSimulator.tsx`** - SUPPRIMÉ (plus de temps simulé)
+- ❌ **`ControlButtonsWrapper.tsx`** - SUPPRIMÉ (remplacé par panneau intégré)
 
-## 🔗 **Imports Recommandés**
+## 🔗 **Imports Simplifiés - Mode Manuel Uniquement**
 
 ```typescript
-// Background
+// Background - SEULS COMPOSANTS NÉCESSAIRES
 import DynamicBackground from './Components/Background/DynamicBackground';
 import AstronomicalLayer from './Components/Background/AstronomicalLayer';
+import DiurnalLayer from './Components/Background/DiurnalLayer';
 
-// Context
-import { TimeProvider, useTime } from './Components/Context/TimeContext';
-import { LocationProvider, useLocation } from './Components/Context/LocationContext';
+// UI - COMPOSANTS ACTIFS
+import SlideFooter from './Components/UI/SlideFooter';
 
-// UI
-import TimeSimulator from './Components/UI/TimeSimulator';
-import BackgroundInfo from './Components/UI/BackgroundInfo';
+// Audio
+import AmbientSoundManagerV2 from './Components/Audio/AmbientSoundManagerV2';
 
-// Testing
-import LocationTestButton from './Components/Testing/LocationTestButton';
+// 🔧 CISCO: SUPPRIMÉS
+// ❌ Contextes (TimeContext, LocationContext)
+// ❌ TimeSimulator, BackgroundInfo, ControlButtonsWrapper
+// ❌ Composants de test GPS
 ```
 
 ## 📝 **Notes d'Organisation**

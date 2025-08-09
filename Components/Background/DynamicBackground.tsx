@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import AstronomicalLayer from './AstronomicalLayer';
 import DiurnalLayer from './DiurnalLayer';
 import SunriseAnimation, { SunriseAnimationRef } from './SunriseAnimation';
-import { useLocation } from '../Context/LocationContext';
-import { useTime } from '../Context/TimeContext';
-import * as SunCalc from 'suncalc';
+// 🔧 CISCO: Suppression des imports GPS/automatisation
+// import { useLocation } from '../Context/LocationContext'; // SUPPRIMÉ
+// import { useTime } from '../Context/TimeContext'; // SUPPRIMÉ
+// import * as SunCalc from 'suncalc'; // SUPPRIMÉ
 import './BackgroundController'; // 🔧 IMPORT: Contrôleur manuel
 
 // 🔧 CISCO: Système de rotation supprimé - Background fixe pour éviter les changements automatiques
@@ -27,9 +28,9 @@ type BackgroundMode =
 // Couleurs simplifiées pour chaque mode
 const BACKGROUND_MODES = {
   night: {
-    primary: '#1a202c',   // Bleu très sombre (plus doux)
-    secondary: '#2d3748', // Bleu-gris foncé
-    tertiary: '#4a5568'   // Gris-bleu moyen (plus doux pour la transition)
+    primary: '#2d3748',   // 🔧 CISCO: Bleu-gris foncé pour le bas (légèrement éclairci)
+    secondary: '#1a202c', // 🔧 CISCO: Bleu très sombre pour le milieu
+    tertiary: '#0f1419'   // 🔧 CISCO: Presque noir pour le haut (entre bleu et noir)
   },
   dawn: {
     primary: '#FFF5E6',   // Blanc crème très doux pour l'horizon
@@ -121,12 +122,11 @@ interface DynamicBackgroundProps {
 
 
 const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode }) => {
-  const { userLocation, locationReady } = useLocation();
-  const { getCurrentTime } = useTime();
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  
-  const currentModeRef = useRef(skyMode);
+  // 🔧 CISCO: Mode par défaut = 12h (midday) si aucun mode spécifié
+  const defaultMode = 'midday';
+  const currentModeRef = useRef(skyMode || defaultMode);
   const backgroundRef = useRef<HTMLDivElement>(null);
   const gradientRef = useRef<HTMLDivElement>(null);
   const landscapeRef = useRef<HTMLDivElement>(null);
@@ -142,46 +142,68 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     return 'center 75%'; // Position optimale pour Background.png
   };
   
-  // Fonction pour déterminer le mode basé sur l'heure
-  const getModeForTime = useCallback((date: Date): string => {
-    if (locationReady && userLocation) {
-      const sunTimes = SunCalc.getTimes(date, userLocation.lat, userLocation.lon);
-      const currentTime = date.getTime();
-      
-      if (currentTime < sunTimes.dawn.getTime()) return 'night';
-      if (currentTime < sunTimes.sunrise.getTime()) return 'dawn';
-      if (currentTime < sunTimes.sunrise.getTime() + (2 * 60 * 60 * 1000)) return 'sunrise';
-      if (currentTime < sunTimes.solarNoon.getTime() - (1 * 60 * 60 * 1000)) return 'morning';
-      if (currentTime < sunTimes.solarNoon.getTime() + (3 * 60 * 60 * 1000)) return 'midday';
-      if (currentTime < sunTimes.sunset.getTime() - (1 * 60 * 60 * 1000)) return 'afternoon';
-      if (currentTime < sunTimes.sunset.getTime()) return 'sunset';
-      if (currentTime < sunTimes.dusk.getTime()) return 'dusk';
-      return 'night';
-    } else {
-      const hour = date.getHours();
-      if (hour >= 5 && hour < 6) return 'dawn';
-      if (hour >= 6 && hour < 8) return 'sunrise';
-      if (hour >= 8 && hour < 11) return 'morning';
-      if (hour >= 11 && hour < 15) return 'midday';
-      if (hour >= 15 && hour < 18) return 'afternoon';
-      if (hour >= 18 && hour < 20) return 'sunset';
-      if (hour >= 20 && hour < 22) return 'dusk';
-      return 'night';
-    }
-  }, [locationReady, userLocation]);
+  // 🔧 CISCO: SUPPRESSION COMPLÈTE - Plus de fonction automatique basée sur l'heure
+  // const getModeForTime = ... // SUPPRIMÉ - Mode manuel uniquement
 
 
 
-  // Fonction pour les transitions de nuages (à implémenter)
+  // 🔧 CISCO: Fonction pour les transitions de nuages - IMPLÉMENTÉE
   const applyCloudTransition = (mode: BackgroundMode, duration: number) => {
     console.log(`☁️ Transition des nuages vers ${mode} (${duration}s)`);
-    // Implémentation à ajouter
+
+    // Déclencher la mise à jour du mode dans DiurnalLayer via l'état
+    // Le composant DiurnalLayer recevra automatiquement le nouveau skyMode
+    // et appliquera les nouvelles teintes via useEffect
+
+    // 🌤️ CISCO: Forcer la mise à jour immédiate des nuages si DiurnalLayer est monté
+    const diurnalContainer = document.querySelector('[data-diurnal-layer]');
+    if (diurnalContainer) {
+      // Déclencher manuellement la transition des nuages avec la nouvelle teinte
+      const cloudElements = diurnalContainer.querySelectorAll('.cloud img');
+
+      // Calculer la teinte selon le nouveau mode
+      const getCloudTintForMode = (mode: string): string => {
+        switch (mode) {
+          case 'night':
+            return 'brightness(0.4) saturate(0.7) contrast(1.1) hue-rotate(-10deg)';
+          case 'dusk':
+            return 'brightness(0.7) saturate(0.9) contrast(1.05) hue-rotate(-5deg)';
+          case 'dawn':
+            return 'brightness(1.1) saturate(1.2) contrast(1.0) hue-rotate(5deg)';
+          case 'sunrise':
+            return 'brightness(1.0) saturate(1.3) contrast(1.1) hue-rotate(15deg)';
+          case 'sunset':
+            return 'brightness(1.0) saturate(1.3) contrast(1.1) hue-rotate(15deg)';
+          default:
+            return 'brightness(1.0) saturate(1.0) contrast(1.0)';
+        }
+      };
+
+      const newTint = getCloudTintForMode(mode);
+
+      cloudElements.forEach((img: Element) => {
+        gsap.to(img as HTMLElement, {
+          filter: newTint,
+          duration: duration, // Synchronisé avec la transition du fond
+          ease: "power1.inOut",
+          overwrite: true // Éviter les conflits de transition
+        });
+      });
+
+      console.log(`🌤️ Transition manuelle des nuages appliquée: ${newTint}`);
+    }
   };
 
-  // Fonction pour les transitions d'étoiles (à implémenter)
+  // 🔧 CISCO: Fonction pour les transitions d'étoiles - IMPLÉMENTÉE
   const applyStarsTransition = (mode: BackgroundMode, duration: number) => {
     console.log(`⭐ Transition des étoiles vers ${mode} (${duration}s)`);
-    // Implémentation à ajouter
+
+    // Déclencher la mise à jour du mode dans AstronomicalLayer via l'état
+    // Le composant AstronomicalLayer recevra automatiquement le nouveau skyMode
+    // et FixedStars se chargera de la transition des étoiles
+
+    // Pas besoin d'action directe ici car le skyMode est passé en props
+    // et les useEffect dans FixedStars gèrent les transitions automatiquement
   };
 
 
@@ -524,15 +546,22 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     }
   };
 
-  // 🌌 CISCO: Nouvelle fonction publique pour déclencher l'animation de la nuit profonde
+  // 🌌 CISCO: Fonction COMPLÈTE pour nuit profonde - ORDRE CORRECT
   const triggerNightAnimation = () => {
-    console.log('🌌 Déclenchement de l\'animation de la nuit profonde depuis DynamicBackground');
+    console.log('🌌 DÉCLENCHEMENT NUIT PROFONDE - ORDRE: 1.Dégradé → 2.Étoiles → 3.Lune');
 
+    // 🔧 CISCO: ÉTAPE 1 - Dégradé de nuit (15 secondes)
+    console.log('🌌 ÉTAPE 1: Déclenchement du dégradé de nuit (15s)');
+    updateDynamicBackground('night');
+
+    // 🔧 CISCO: ÉTAPE 2 - Animation du soleil (descente sous horizon)
     if (sunriseAnimationRef.current) {
       sunriseAnimationRef.current.triggerNight();
     } else {
       console.warn('⚠️ Référence SunriseAnimation non disponible pour la nuit profonde');
     }
+
+    console.log('🌌 Séquence nuit profonde lancée: Dégradé → Étoiles (auto) → Lune (délai 15s)');
   };
 
   // Exposer les fonctions globalement
@@ -564,32 +593,20 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
     };
   }, []);
 
-  // Gestion du mode manuel/auto avec intervalle sécurisé et anti-boucle
+  // 🔧 CISCO: Mode manuel UNIQUEMENT - Initialisation par défaut
   useEffect(() => {
     if (skyMode) {
       // Mode manuel via props
+      console.log(`🎯 Mode manuel détecté: ${skyMode}`);
       if (skyMode !== (currentModeRef.current as string)) {
         setBackgroundMode(skyMode as BackgroundMode);
       }
-      return;
+    } else {
+      // 🔧 CISCO: Mode par défaut = 12h (midday) au chargement
+      console.log('🌅 Initialisation mode par défaut: midday (12h)');
+      setBackgroundMode(defaultMode as BackgroundMode);
     }
-
-    // Mode automatique basé sur l'heure
-    const nowMode = getModeForTime(getCurrentTime());
-    if (nowMode !== currentModeRef.current) {
-      updateDynamicBackground(nowMode as BackgroundMode);
-    }
-
-    // Vérifier les changements toutes les minutes
-    const interval = setInterval(() => {
-      const newMode = getModeForTime(getCurrentTime());
-      if (newMode !== currentModeRef.current) {
-        updateDynamicBackground(newMode as BackgroundMode);
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [skyMode, getCurrentTime, getModeForTime]);
+  }, [skyMode]);
 
 
 
@@ -630,7 +647,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ children, skyMode
           backgroundImage: `url(${selectedBackground})`,
           backgroundPosition: getBackgroundPosition(), // Position pour Background.png
           backgroundSize: 'cover', // Taille standard pour tous les backgrounds
-          zIndex: 5,
+          zIndex: 10, // 🔧 CISCO: Paysage en avant-plan (z-index 10)
           transformOrigin: 'center center',
           willChange: 'transform, filter'
         }}

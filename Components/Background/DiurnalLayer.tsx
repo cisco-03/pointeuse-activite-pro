@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
-// Interface pour un nuage - VERSION PHYSIQUE AMÉLIORÉE
+// 🔧 CISCO: Interface pour un nuage - NOUVELLE COLLECTION HAUTE QUALITÉ
 interface Cloud {
   id: number;
   x: number; // Position X initiale (pour être visible immédiatement)
   y: number; // Position Y aléatoire
   size: number; // Taille du nuage
   duration: number; // Durée de l'animation (vitesse)
-  type: 'dust' | 'cloud-01' | 'cloud-02' | 'smoke';
+  cloudNumber: number; // Numéro du nuage dans la nouvelle collection (48-70)
   verticalDrift: number; // Dérive verticale naturelle
   opacity: number; // Opacité variable
   zIndex: number; // Profondeur pour effet de parallaxe
@@ -19,18 +19,32 @@ interface DiurnalLayerProps {
   skyMode: string;
 }
 
-// 🔧 FONCTION SIMPLIFIÉE: Calculer les effets sur les nuages (optimisés)
+// 🔧 CISCO: SYSTÈME DE TEINTES PROGRESSIVES POUR NUAGES - Mode Nuit Spécialisé
 const getCloudTintForMode = (mode: string): string => {
   switch (mode) {
-    case 'midday': return 'brightness(1.3) saturate(0.8) contrast(0.95) hue-rotate(0deg)'; // CISCO: Nuages très blancs/lumineux
-    case 'morning': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
-    case 'afternoon': return 'brightness(1.1) saturate(1.0) contrast(1.05)';
-    case 'dawn': return 'brightness(0.8) contrast(1.1) saturate(1.1) hue-rotate(5deg)';
-    case 'sunrise': return 'brightness(0.9) contrast(1.1) saturate(1.2) hue-rotate(8deg)';
-    case 'sunset': return 'brightness(1.0) contrast(1.1) saturate(1.3) hue-rotate(15deg)'; // CISCO: Nuages dorés/orangés, pas noirs
-    case 'dusk': return 'brightness(0.6) contrast(1.15) saturate(1.2) hue-rotate(8deg)';
-    case 'night': return 'brightness(0.3) contrast(1.2) saturate(0.7) hue-rotate(-10deg)';
-    default: return 'brightness(1.0) saturate(1.0) contrast(1.0)';
+    case 'night':
+      // 🌙 CISCO: Nuages assombris mais visibles pour la lune
+      return 'brightness(0.4) saturate(0.7) contrast(1.1) hue-rotate(-10deg)';
+
+    case 'dusk':
+      // 🌆 Transition vers la nuit - nuages légèrement assombris
+      return 'brightness(0.7) saturate(0.9) contrast(1.05) hue-rotate(-5deg)';
+
+    case 'dawn':
+      // 🌅 Nuages dorés de l'aube
+      return 'brightness(1.1) saturate(1.2) contrast(1.0) hue-rotate(5deg)';
+
+    case 'sunrise':
+      // 🌄 Nuages orangés du lever de soleil
+      return 'brightness(1.0) saturate(1.3) contrast(1.1) hue-rotate(15deg)';
+
+    case 'sunset':
+      // 🌇 Nuages dorés/orangés du coucher
+      return 'brightness(1.0) saturate(1.3) contrast(1.1) hue-rotate(15deg)';
+
+    default:
+      // 🔧 CISCO: Nuages naturels pour tous les autres modes (matin, midi, après-midi)
+      return 'brightness(1.0) saturate(1.0) contrast(1.0)';
   }
 };
 
@@ -38,18 +52,20 @@ const getCloudTintForMode = (mode: string): string => {
 const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fonction pour générer les nuages avec physique améliorée - VERSION ULTRA ALÉATOIRE
+  // 🔧 CISCO: Fonction pour générer les nuages - NOUVELLE COLLECTION HAUTE QUALITÉ
   const generateClouds = (): Cloud[] => {
     const clouds: Cloud[] = [];
-    const cloudCount = 32; // 🔧 AUGMENTATION: Encore plus de nuages pour un ciel plus rempli
-    const types: ('dust' | 'cloud-01' | 'cloud-02' | 'smoke')[] = ['dust', 'cloud-01', 'cloud-02', 'smoke'];
+    const cloudCount = 20; // 🔧 CISCO: Optimisation - 20 nuages haute qualité (collection complète)
+
+    // 🔧 CISCO: Collection corrigée - Nuages existants uniquement (48, 50-70)
+    const availableCloudNumbers = [48, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]; // 22 nuages disponibles
 
     for (let i = 0; i < cloudCount; i++) {
-      // 🔧 RANDOMISATION ULTRA COMPLÈTE: Type aléatoire à chaque fois
-      const randomTypeIndex = Math.floor(Math.random() * types.length);
-      const cloudType = types[randomTypeIndex];
+      // 🔧 CISCO: Sélection aléatoire dans la nouvelle collection
+      const randomIndex = Math.floor(Math.random() * availableCloudNumbers.length);
+      const cloudNumber = availableCloudNumbers[randomIndex];
 
-      // 🔧 PHYSIQUE: Tailles retravaillées - SEULEMENT moyens et grands nuages
+      // 🔧 CISCO: Tailles optimisées pour nuages haute qualité
       const sizeCategory = Math.random();
       let cloudSize;
       if (sizeCategory < 0.6) {
@@ -60,10 +76,8 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
         cloudSize = 2.0 + Math.random() * 1.5; // 2.0x à 3.5x
       }
 
-      // 🔧 PHYSIQUE: Vitesse ralentie pour un rendu plus réaliste (moins de tempête)
-      const baseSpeed = 300 + Math.random() * 400; // Entre 300 et 700 secondes (plus lent)
-      const sizeSpeedFactor = cloudSize > 1.5 ? 1.8 : (cloudSize < 0.6 ? 0.7 : 1.0); // Facteurs réduits
-      const duration = baseSpeed * sizeSpeedFactor + Math.random() * 300; // Variation réduite
+      // 🔧 CISCO: Vitesse ENCORE PLUS RALENTIE pour mouvement naturel et contemplatif
+      const duration = 1200; // Vitesse TRÈS RALENTIE de 1200 secondes (20 minutes) pour tous les nuages
 
       // 🔧 PHYSIQUE: Dérive verticale ultra variée
       const verticalDrift = (Math.random() - 0.5) * 30; // ±15% de dérive verticale
@@ -71,16 +85,16 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
       // 🔧 CISCO: Opacité fixée à 100% - AUCUN nuage semi-transparent
       const opacity = 1.0; // 100% opaque - TOUJOURS visible
 
-      // 🔧 PHYSIQUE: Profondeur aléatoire pour parallaxe
-      const zIndex = Math.random() > 0.4 ? 12 : 10; // 60% en premier plan
+      // 🔧 CISCO: Profondeur selon hiérarchie - Nuages derrière le paysage (z-index 9)
+      const zIndex = 9; // Tous les nuages au même niveau, derrière le paysage
 
       clouds.push({
         id: i,
-        x: Math.random() * 140 - 20, // 🔧 CORRECTION: Position aléatoire sur toute la largeur (-20% à 120%)
-        y: 3 + Math.random() * 85, // Position Y ultra variée (3% à 88%)
+        x: -30 - Math.random() * 20, // 🔧 CISCO: TOUS les nuages commencent hors écran à GAUCHE (-30% à -50%) - pas d'apparition "par enchantement"
+        y: 3 + Math.random() * 47, // 🔧 CISCO: Position Y uniquement dans la moitié HAUTE (3% à 50%) - pas besoin en bas à cause du paysage
         size: cloudSize,
         duration: duration,
-        type: cloudType,
+        cloudNumber: cloudNumber, // 🔧 CISCO: Nouveau - numéro du nuage dans la collection
         verticalDrift: verticalDrift,
         opacity: opacity,
         zIndex: zIndex
@@ -108,59 +122,23 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
     containerRef.current.innerHTML = '';
 
     clouds.forEach((cloud) => {
-      // Choisir l'image selon le type
-      let imageSrc: string;
-      switch (cloud.type) {
-        case 'dust':
-          imageSrc = '/Cloud_white-dust-64.png';
-          break;
-        case 'cloud-01':
-          imageSrc = '/Cloud-01.png';
-          break;
-        case 'cloud-02':
-          imageSrc = '/cloud-02.png';
-          break;
-        case 'smoke':
-          imageSrc = '/smoke-cloud-93.png';
-          break;
-        default:
-          imageSrc = '/Cloud_white-dust-64.png';
-      }
+      // 🔧 CISCO: Nouvelle collection haute qualité - Sélection par numéro
+      const imageSrc = `/Clouds/cloud_${cloud.cloudNumber}.png`;
 
-      // Vérifier que l'image existe
+      console.log(`🌤️ Chargement nuage haute qualité: cloud_${cloud.cloudNumber}.png`);
+
+      // 🔧 CISCO: Chargement robuste avec vérification préalable
       const img = new Image();
+
       img.onload = () => {
         // Image chargée avec succès, créer l'élément nuage
         const cloudElement = document.createElement('div');
         cloudElement.className = 'cloud';
-
-        // 🔧 CISCO: Suppression des délais d'apparition - nuages omniprésents dès le chargement
-        let randomDelay = 0; // Tous les nuages commencent immédiatement
-
-        // 🔧 CISCO: Dispersion des positions initiales pour éviter l'effet de groupe
-        // Les nuages commencent à des positions différentes dans leur cycle d'animation
-        const animationOffset = Math.random(); // 0 à 1 pour répartir sur tout le cycle
-
-        // 🔧 MODE MANUEL: Teinte neutre par défaut avec variation selon le type
-        let initialTint;
-        switch (cloud.type) {
-          case 'dust':
-            initialTint = 'brightness(1.0) saturate(0.9) contrast(1.05)'; // Légèrement désaturé
-            break;
-          case 'smoke':
-            initialTint = 'brightness(0.95) saturate(0.8) contrast(1.1)'; // Plus foncé et contrasté
-            break;
-          case 'cloud-01':
-          case 'cloud-02':
-          default:
-            initialTint = 'brightness(1.0) saturate(1.0) contrast(1.0)'; // Neutre
-            break;
-        }
-
-        // 🔧 AJOUT: Attribut data pour identifier les nuages
         cloudElement.setAttribute('data-cloud-element', 'true');
 
-        // 🔧 CISCO: Style CSS avec animation immédiate et répartition sur le cycle
+        const animationOffset = Math.random();
+        const initialTint = getCloudTintForMode(skyMode);
+
         cloudElement.style.cssText = `
           position: absolute;
           left: ${cloud.x}%;
@@ -168,39 +146,38 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
           --cloud-scale: ${cloud.size};
           --vertical-drift: ${cloud.verticalDrift}%;
           --start-x: ${cloud.x - 50}vw;
-          --animation-offset: ${animationOffset}; /* Offset pour répartir les nuages sur le cycle */
+          --animation-offset: ${animationOffset};
           pointer-events: none;
           z-index: ${cloud.zIndex};
           transform: translateX(-50%) translateY(-50%) scale(var(--cloud-scale));
-          animation: cloud-drift-realistic ${cloud.duration}s linear infinite ${randomDelay}s;
-          animation-delay: ${-cloud.duration * animationOffset}s; /* Délai négatif pour commencer au milieu du cycle */
+          animation: cloud-drift-realistic ${cloud.duration}s linear infinite;
+          animation-delay: ${-cloud.duration * animationOffset}s;
           opacity: ${cloud.opacity};
           will-change: transform;
         `;
 
-        // Créer l'élément image avec taille variable
         const imgElement = document.createElement('img');
         imgElement.src = imageSrc;
-        imgElement.alt = `Nuage ${cloud.type}`;
-        
-        // 🔧 TAILLES RETRAVAILLÉES: Basées sur les nouvelles dimensions moyennes/grandes
-        const imageSize = Math.floor(80 + cloud.size * 50); // Entre 80px et 255px (plus gros)
-        
+        imgElement.alt = `Nuage ${cloud.cloudNumber}`;
+
+        const imageSize = Math.floor(80 + cloud.size * 50);
         imgElement.style.cssText = `
           width: ${imageSize}px;
           height: auto;
           filter: ${initialTint};
           user-select: none;
-          transition: filter 2s ease-in-out;
           will-change: filter;
+          transform: translateZ(0);
+          backface-visibility: hidden;
         `;
 
         cloudElement.appendChild(imgElement);
         containerRef.current?.appendChild(cloudElement);
+        console.log(`✅ Nuage ${cloud.cloudNumber} chargé et ajouté`);
       };
 
       img.onerror = () => {
-        console.warn(`🌤️ Image non trouvée: ${imageSrc}`);
+        console.error(`❌ Erreur chargement nuage: ${imageSrc}`);
       };
 
       img.src = imageSrc;
@@ -282,9 +259,10 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
   return (
     <div
       ref={containerRef}
+      data-diurnal-layer="true"
       className="fixed inset-0 pointer-events-none overflow-hidden"
       style={{
-        zIndex: 2
+        zIndex: 9 // 🔧 CISCO: Nuages derrière le paysage (z-index 9)
       }}
     />
   );

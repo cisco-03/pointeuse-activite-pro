@@ -30,7 +30,7 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
       return {
         low: { 'ultra-micro': 300, micro: 200, small: 40, medium: 15, large: 5 },
         medium: { 'ultra-micro': 600, micro: 400, small: 80, medium: 25, large: 8 },
-        high: { 'ultra-micro': 1000, micro: 600, small: 120, medium: 35, large: 12 } // CISCO: Vraiment beaucoup !
+        high: { 'ultra-micro': 1000, micro: 600, small: 120, medium: 50, large: 25 } // 🔧 CISCO: Davantage de grosses étoiles (medium: 50, large: 25)
       };
     } else {
       // AUTRES MODES : Configuration normale sans ultra-micro
@@ -89,7 +89,7 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
     return {
       id,
       x: Math.random() * 100, // Position en pourcentage sur toute la largeur
-      y: Math.random() * 25, // CISCO: Concentré dans le quart supérieur (0-25%) pour maximum de densité !
+      y: Math.random() * 70, // 🔧 CISCO: Distribution homogène sur 70% de l'écran (0-70%) pour éviter le vide en bas
       size: config.sizeRange[0] + Math.random() * (config.sizeRange[1] - config.sizeRange[0]),
       brightness: config.brightnessRange[0] + Math.random() * (config.brightnessRange[1] - config.brightnessRange[0]),
       twinkleSpeed: config.twinkleSpeedRange[0] + Math.random() * (config.twinkleSpeedRange[1] - config.twinkleSpeedRange[0]),
@@ -149,35 +149,65 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
 
     containerRef.current.appendChild(element);
 
-    // Animation de scintillement améliorée - CISCO: Plus réaliste pour les grosses étoiles
+    // 🔧 CISCO: Animation de scintillement TRÈS VISIBLE et naturelle
     const timeline = gsap.timeline({ repeat: -1, yoyo: true });
 
-    // Scintillement plus prononcé pour les grosses étoiles
-    const minOpacity = star.type === 'large' ? star.brightness * 0.4 : star.brightness * 0.3;
-    const scaleVariation = star.type === 'large' ? 0.8 : (star.type === 'medium' ? 0.75 : 0.7);
+    // 🌟 CISCO: Scintillement BEAUCOUP plus prononcé et visible
+    const minOpacity = star.type === 'large' ? star.brightness * 0.1 :
+                      star.type === 'medium' ? star.brightness * 0.15 :
+                      star.type === 'small' ? star.brightness * 0.2 :
+                      star.brightness * 0.25; // Contraste MAXIMUM pour visibilité
 
+    const maxOpacity = star.type === 'large' ? Math.min(star.brightness * 2.5, 1.0) :
+                      star.type === 'medium' ? Math.min(star.brightness * 2.2, 1.0) :
+                      star.type === 'small' ? Math.min(star.brightness * 2.0, 1.0) :
+                      Math.min(star.brightness * 1.8, 1.0); // Luminosité MAXIMUM pour scintillement visible
+
+    const scaleVariation = star.type === 'large' ? 0.3 :
+                          star.type === 'medium' ? 0.4 :
+                          star.type === 'small' ? 0.5 : 0.6; // Variation EXTRÊME pour scintillement dramatique
+
+    const maxScale = star.type === 'large' ? 1.8 :
+                    star.type === 'medium' ? 1.6 :
+                    star.type === 'small' ? 1.4 : 1.2; // Échelle maximum AUGMENTÉE
+
+    // 🌟 CISCO: Animation principale de scintillement ULTRA VISIBLE
     timeline.to(element, {
       opacity: minOpacity,
       scale: scaleVariation,
-      duration: star.twinkleSpeed,
+      duration: star.twinkleSpeed * 0.3, // BEAUCOUP plus rapide pour dynamisme maximum
       ease: "power2.inOut"
     });
 
-    // Ajouter un effet de "pulse" pour les grosses étoiles
-    if (star.type === 'large' || star.type === 'medium') {
-      timeline.to(element, {
-        boxShadow: `0 0 ${star.size * 3}px ${getStarColor(star.type, star.brightness)}`,
-        duration: star.twinkleSpeed * 0.5,
-        ease: "power1.inOut"
-      }, 0);
-    }
+    // 🌟 CISCO: Phase de pic lumineux DRAMATIQUE
+    timeline.to(element, {
+      opacity: maxOpacity,
+      scale: maxScale,
+      duration: star.twinkleSpeed * 0.2, // Phase très courte mais TRÈS intense
+      ease: "power2.out"
+    });
+
+    // 🌟 CISCO: Effet de "pulse" lumineux INTENSIFIÉ pour toutes les étoiles
+    const glowIntensity = star.type === 'large' ? star.size * 6 :
+                         star.type === 'medium' ? star.size * 5 :
+                         star.type === 'small' ? star.size * 4 :
+                         star.size * 3.5; // Halo plus intense
+
+    timeline.to(element, {
+      boxShadow: `0 0 ${glowIntensity}px ${getStarColor(star.type, star.brightness)}, 0 0 ${glowIntensity * 2}px ${getStarColor(star.type, star.brightness * 0.8)}, 0 0 ${glowIntensity * 3}px ${getStarColor(star.type, star.brightness * 0.4)}`,
+      duration: star.twinkleSpeed * 0.5,
+      ease: "power1.inOut"
+    }, 0); // Synchronisé avec l'opacité
+
+    // Ajouter une variation aléatoire dans le timing pour plus de naturel
+    timeline.delay(Math.random() * star.twinkleSpeed);
 
     animationsRef.current.push(timeline);
 
     return element;
   };
 
-  // Initialisation des étoiles
+  // 🔧 CISCO: Initialisation des étoiles avec visibilité immédiate
   const initializeStars = () => {
     if (!containerRef.current) return;
 
@@ -186,13 +216,33 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
 
     // Créer les nouvelles étoiles
     starsRef.current = createStars();
-    
+
     // Rendre chaque étoile
     starsRef.current.forEach(star => {
       renderStar(star);
     });
 
-    console.log(`✨ ${starsRef.current.length} étoiles fixes créées (${density})`);
+    console.log(`✨ ${starsRef.current.length} étoiles fixes créées (${density}) pour mode ${skyMode}`);
+
+    // 🔧 CISCO: Appliquer immédiatement la visibilité selon le mode actuel
+    const initialVisibility = getVisibility(skyMode);
+    const starElements = containerRef.current.querySelectorAll('.fixed-star');
+
+    console.log(`✨ Application visibilité initiale: ${initialVisibility} pour mode ${skyMode} sur ${starElements.length} étoiles`);
+
+    starElements.forEach((element: Element) => {
+      const htmlElement = element as HTMLElement;
+      // 🌟 CISCO: Définir l'opacité de base ET forcer la visibilité immédiate
+      htmlElement.style.setProperty('--base-opacity', initialVisibility.toString());
+      htmlElement.style.opacity = initialVisibility.toString();
+
+      // 🌟 CISCO: En mode nuit, s'assurer que les étoiles sont bien visibles
+      if (skyMode === 'night') {
+        console.log(`⭐ Étoile ${htmlElement.id} initialisée visible en mode nuit`);
+      }
+    });
+
+    console.log(`⭐ Visibilité initiale appliquée: ${initialVisibility} pour mode ${skyMode}`);
   };
 
   // Nettoyage des étoiles
@@ -210,43 +260,77 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
     starsRef.current = [];
   };
 
-  // Mise à jour de la visibilité selon le mode du ciel avec transition progressive
+  // 🔧 CISCO: Mise à jour de la visibilité - CORRECTION ERREUR
   const updateVisibility = (duration: number = 8.0) => {
     if (!containerRef.current) return;
 
     const visibility = getVisibility(skyMode);
     const starElements = containerRef.current.querySelectorAll('.fixed-star');
 
-    console.log(`⭐ Transition progressive des étoiles vers opacité ${visibility} (durée: ${duration}s)`);
+    console.log(`⭐ Transition progressive des étoiles vers opacité ${visibility} (durée: ${duration}s) - ${starElements.length} étoiles trouvées`);
 
+    // 🔧 CISCO: CORRECTION - Appliquer la visibilité de base sans écraser les animations de scintillement
     starElements.forEach((element: Element) => {
-      // Utiliser GSAP pour une transition douce synchronisée avec le background
-      gsap.to(element as HTMLElement, {
-        opacity: visibility,
-        duration: duration,
-        ease: "power1.inOut", // Même easing que le background
-        overwrite: true // Éviter les conflits de transition
-      });
+      const htmlElement = element as HTMLElement;
+
+      // 🌟 CISCO: Appliquer la visibilité de base comme propriété CSS, pas via GSAP
+      // Cela permet aux animations de scintillement de fonctionner par-dessus
+      htmlElement.style.setProperty('--base-opacity', visibility.toString());
+
+      // 🌟 CISCO: Pour le mode nuit, s'assurer que les étoiles sont bien visibles
+      if (skyMode === 'night') {
+        // Forcer la visibilité immédiate en mode nuit
+        gsap.set(htmlElement, { opacity: visibility });
+        console.log(`⭐ Étoile ${htmlElement.id} forcée visible en mode nuit`);
+      } else {
+        // Pour les autres modes, transition douce
+        gsap.to(htmlElement, {
+          opacity: visibility,
+          duration: duration,
+          ease: "power1.inOut",
+          overwrite: 'auto' // 🔧 CISCO: 'auto' au lieu de true pour préserver les animations
+        });
+      }
     });
   };
 
-  // Initialisation au montage et quand le mode change (pour les ultra-micro en nuit)
+  // 🔧 CISCO: Initialisation au montage seulement (pas de régénération sur skyMode)
   useEffect(() => {
     initializeStars();
     return cleanupStars;
-  }, [density, skyMode]); // Régénérer quand skyMode change pour les ultra-micro
+  }, [density]); // Régénérer seulement quand la densité change
 
-  // Mise à jour de la visibilité quand le mode change avec transition progressive
+  // 🔧 CISCO: Mise à jour de la visibilité quand le mode change avec transition progressive
   useEffect(() => {
-    // Utiliser la même durée que les transitions du background (15 secondes)
-    updateVisibility(15.0);
+    // Délai pour s'assurer que les étoiles sont créées avant la transition
+    const timer = setTimeout(() => {
+      console.log(`🌌 FixedStars: Transition vers mode ${skyMode}`);
+
+      // 🔧 CISCO: DÉBOGAGE - Vérifier l'état des étoiles avant transition
+      if (containerRef.current) {
+        const starElements = containerRef.current.querySelectorAll('.fixed-star');
+        console.log(`🔍 DÉBOGAGE: ${starElements.length} étoiles trouvées dans le DOM`);
+
+        // Vérifier quelques étoiles pour diagnostic
+        starElements.forEach((element, index) => {
+          if (index < 3) { // Vérifier les 3 premières étoiles
+            const htmlElement = element as HTMLElement;
+            console.log(`🔍 Étoile ${index}: opacity=${htmlElement.style.opacity}, display=${htmlElement.style.display}, z-index=${getComputedStyle(htmlElement).zIndex}`);
+          }
+        });
+      }
+
+      updateVisibility(15.0); // Utiliser la même durée que les transitions du background
+    }, 100); // Délai de 100ms pour éviter les conflits de timing
+
+    return () => clearTimeout(timer);
   }, [skyMode]);
 
   return (
     <div
       ref={containerRef}
       className="fixed absolute inset-0 overflow-hidden pointer-events-none"
-      style={{ zIndex: 20 }} // CISCO: Z-index élevé pour être au-dessus du paysage
+      style={{ zIndex: 7 }} // 🔧 CISCO: Étoiles derrière la lune (z-index 7)
     />
   );
 };

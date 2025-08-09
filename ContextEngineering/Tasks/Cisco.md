@@ -3,24 +3,95 @@
 ContextEngineering\Tasks\Cisco.md
 
 
-Avec mon approbation écrite, tu peux commencer à travailler sur la tâche.
+# Avec mon approbation écrite, tu peux commencer à travailler sur la tâche.
 
-Ensuite nous allons revoir tout le système audio parce que c'est une catastrophe  
-Il faut tout revoir depuis le début avec l'audio  
-Tout est désynchronisé  
-Il y a un widget en bas à droite qui se nomme : Contrôle audio d'ambiance. En fait, lorsqu'on veut agir sur le volume, il n'y a plus rien qui fonctionne. Au contraire, même ça arrête le son. 
+**Tâche 1 :**
+- 
 
-Alors ci-dessous, c'est très simple, c'est le répertoire des effets sonores qui sont normalement synchro avec tous les boutons dans le panneau de contrôle d'ambiance : Components\UI\TimeSimulator.tsx
-Et en fait c'est tout simple pour réparer pour que les sons soient fonctionnels tu regardes le répertoire dessous et là tu as tout ce qu'il faut pour réparer. Si nous prenons par exemple le sous-dossier, c'est un exemple. Après 12 h, tu visites ce dossier, tu verras il y a normalement un ou deux fichiers sonores. Parfois, il peut peut-être en avoir trois. Eh bien, c'est simple. Quand on clique sur le bouton du contrôle, du panneau de contrôle d'ambiance, ça permet d'activer ces sons. Mais juste ces sons, ça veut dire que si je clique sur le bouton après 12 h, ça enclenche ces sons. Et si je clique maintenant sur le bouton Aube, ça arrête. L'effet sonore après 12 h, et c'est le bouton Aube qui active les fichiers sonores qui sont inclus dedans. Tu comprends ? 
-public\sounds
-public\sounds\apres-midi
-public\sounds\aube
-public\sounds\coucher-soleil
-public\sounds\crepuscule
-public\sounds\lever-soleil
-public\sounds\matin
-public\sounds\midi
-public\sounds\nuit-profonde
+**Tâche 2 :**
+- Je regarde dans la console de log, comment s'est-il que vous avez dupliqué des nuages ? Je vous avais dit dès le début, vous n'avez pas respecté les instructions, je vous ai dit d'utiliser que la vingtaine de nuages, plus ou moins, pour l'utilisation. Là le problème c'est que quand je regarde dans la console, vous prenez le même nuage et vous le dupliquez. C'est normal que l'application a ralenti  
+
+- Gros problème de ralentissement au niveau de l'application, je doute qu'à mon avis, soit c'est un conflit, soit c'est des nuages. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**Tâches à venir après rectification et correction pour les nuages. Cette tâche viendra bien après.** 
+Ensuite maintenant que nous avons tout nettoyé l'ancien code il va falloir remettre en place le soleil  
+
+Mais je suis en train de chercher sur le net s'il n'y a pas une solution avec un soleil totalement animé avec du javascript 
+
+animated sun GSAP javascript code ?? C'est possible ??
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

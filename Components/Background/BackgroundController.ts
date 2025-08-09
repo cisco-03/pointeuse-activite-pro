@@ -72,94 +72,39 @@ export const testMicroStars = () => {
   }, 1000);
 };
 
-// 🔧 FONCTION CYCLE: Parcourir tous les modes automatiquement
-export const cycleAllModes = (delaySeconds: number = 3) => {
-  let currentIndex = 0;
-  
-  const cycleNext = () => {
-    setMode(AVAILABLE_MODES[currentIndex]);
-    currentIndex = (currentIndex + 1) % AVAILABLE_MODES.length;
-    
-    if (currentIndex === 0) {
-      console.log('🔄 Cycle terminé ! Recommencer avec cycleAllModes() si désiré.');
-      return;
-    }
-    
-    setTimeout(cycleNext, delaySeconds * 1000);
-  };
-  
-  console.log(`🔄 Début du cycle automatique (${delaySeconds}s entre chaque mode)...`);
-  cycleNext();
-};
+// 🔧 CISCO: SUPPRESSION - Plus de cycle automatique
+// export const cycleAllModes = ... // SUPPRIMÉ - Mode manuel uniquement
 
-// 🔧 NOUVELLE FONCTION: Synchroniser avec l'heure réelle du PC
-export const syncWithRealTime = () => {
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  
-  console.log(`🕒 Heure actuelle: ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-  
-  let targetMode: string;
-  
-  // Déterminer le mode selon l'heure
-  if (hour >= 5 && hour < 6) {
-    targetMode = 'dawn'; // 5h-6h : Aube
-  } else if (hour >= 6 && hour < 8) {
-    targetMode = 'sunrise'; // 6h-8h : Lever du soleil
-  } else if (hour >= 8 && hour < 11) {
-    targetMode = 'morning'; // 8h-11h : Matin
-  } else if (hour >= 11 && hour < 15) {
-    targetMode = 'midday'; // 11h-15h : Midi
-  } else if (hour >= 15 && hour < 18) {
-    targetMode = 'afternoon'; // 15h-18h : Après-midi
-  } else if (hour >= 18 && hour < 20) {
-    targetMode = 'sunset'; // 18h-20h : Coucher du soleil
-  } else if (hour >= 20 && hour < 22) {
-    targetMode = 'dusk'; // 20h-22h : Crépuscule
-  } else {
-    targetMode = 'night'; // 22h-5h : Nuit
-  }
-  
-  console.log(`🎨 Synchronisation avec l'heure réelle: ${targetMode}`);
-  setMode(targetMode);
-  
-  return targetMode;
-};
+// 🔧 CISCO: SUPPRESSION - Plus de synchronisation automatique avec l'heure PC
+// export const syncWithRealTime = ... // SUPPRIMÉ - Mode manuel uniquement
 
-// 🔧 AIDE: Afficher les commandes disponibles
+// 🔧 CISCO: AIDE SIMPLIFIÉE - Mode manuel uniquement
 export const help = () => {
   console.log(`
-🎮 CONTRÔLEUR MANUEL DYNAMIC BACKGROUND
+🎮 CONTRÔLEUR MANUEL DYNAMIC BACKGROUND - MODE SIMPLIFIÉ
 
 Commandes disponibles:
 📍 setMode('nom_du_mode') - Changer vers un mode spécifique
-📍 dawn() - Mode aube (5h-6h)
-📍 sunrise() - Mode lever du soleil (6h-8h)
-📍 morning() - Mode matin (8h-11h)
-📍 midday() - Mode midi (11h-15h)
-📍 afternoon() - Mode après-midi (15h-18h)
-📍 sunset() - Mode coucher du soleil (18h-20h)
-📍 dusk() - Mode crépuscule (20h-22h)
-📍 night() - Mode nuit (22h-5h)
+📍 dawn() - Mode aube
+📍 sunrise() - Mode lever du soleil
+📍 morning() - Mode matin
+📍 midday() - Mode midi (par défaut)
+📍 afternoon() - Mode après-midi
+📍 sunset() - Mode coucher du soleil
+📍 dusk() - Mode crépuscule
+📍 night() - Mode nuit
 
-🔄 cycleAllModes(delai) - Cycle automatique (délai en secondes)
-🕒 syncWithRealTime() - Synchroniser avec l'heure du PC
 ❓ help() - Afficher cette aide
 
 Exemples:
   dawn()              // Passer en mode aube
   setMode('sunset')   // Passer en mode coucher du soleil
-  syncWithRealTime()  // Synchroniser avec l'heure actuelle
-  cycleAllModes(5)    // Cycle avec 5s entre chaque mode
+  midday()            // Retour au mode par défaut (12h)
 `);
 };
 
-// 🔧 CISCO: DÉSACTIVÉ - Fonctions automatiques qui interfèrent avec le contrôle manuel
-// Exposer les fonctions globalement pour utilisation dans la console
+// 🔧 CISCO: Exposition simplifiée - Mode manuel uniquement
 if (typeof window !== 'undefined') {
-  // ❌ DÉSACTIVÉ: Pas d'exposition automatique pour éviter les conflits
-  /*
   (window as any).bgControl = {
     setMode,
     dawn,
@@ -170,29 +115,22 @@ if (typeof window !== 'undefined') {
     sunset,
     dusk,
     night,
-    cycleAllModes,
-    syncWithRealTime,
     help
   };
 
   console.log(`
-🎮 CONTRÔLEUR MANUEL ACTIVÉ !
+🎮 CONTRÔLEUR MANUEL SIMPLIFIÉ !
 
-Pour contrôler l'arrière-plan, utilisez:
-  bgControl.dawn()            // Mode aube
-  bgControl.night()           // Mode nuit
-  bgControl.syncWithRealTime() // Sync avec l'heure PC
-  bgControl.help()            // Voir toutes les commandes
-  bgControl.cycleAllModes()   // Cycle automatique
+Pour contrôler l'arrière-plan via console:
+  bgControl.dawn()      // Mode aube
+  bgControl.midday()    // Mode par défaut (12h)
+  bgControl.night()     // Mode nuit
+  bgControl.help()      // Voir toutes les commandes
 
 Ou directement:
   setMode('dawn')
-  syncWithRealTime()
+  midday()              // Retour au mode par défaut
   `);
-  */
-
-  // 🔧 CISCO: Contrôle UNIQUEMENT via TimeSimulator - pas d'automatisme
-  console.log('🎮 BackgroundController désactivé - Contrôle via TimeSimulator uniquement');
 }
 
 export default {
@@ -205,7 +143,5 @@ export default {
   sunset,
   dusk,
   night,
-  cycleAllModes,
-  syncWithRealTime,
   help
 };

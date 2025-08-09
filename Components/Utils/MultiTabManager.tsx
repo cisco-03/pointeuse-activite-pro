@@ -88,6 +88,13 @@ export const useMultiTabManager = (enabled: boolean = true) => {
     console.log(`🔗 URL de travail mise à jour: ${url}`);
   };
 
+  // 🗑️ CISCO: Fonction pour supprimer l'URL de travail
+  const clearWorkingUrl = () => {
+    setWorkingUrl('');
+    localStorage.removeItem('timetracker_working_url');
+    console.log('🗑️ URL de travail supprimée');
+  };
+
   // 💾 Charger l'URL sauvegardée
   useEffect(() => {
     const savedUrl = localStorage.getItem('timetracker_working_url');
@@ -107,6 +114,7 @@ export const useMultiTabManager = (enabled: boolean = true) => {
     showUrlInput,
     setShowUrlInput,
     updateWorkingUrl,
+    clearWorkingUrl, // 🗑️ CISCO: Nouvelle fonction de suppression
     showTabNotification,
     setVisibilityCallback,
     lastActiveTime: lastActiveTimeRef.current
@@ -125,6 +133,7 @@ const MultiTabManager: React.FC<MultiTabManagerProps> = ({
     showUrlInput,
     setShowUrlInput,
     updateWorkingUrl,
+    clearWorkingUrl, // 🗑️ CISCO: Fonction de suppression
     setVisibilityCallback
   } = useMultiTabManager(enabled);
 
@@ -268,8 +277,18 @@ const MultiTabManager: React.FC<MultiTabManagerProps> = ({
         </div>
 
         {workingUrl && !showUrlInput && (
-          <div className="text-xs text-teal-400 truncate" title={workingUrl}>
-            🔗 {workingUrl}
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs text-teal-400 truncate flex-1" title={workingUrl}>
+              🔗 {workingUrl}
+            </div>
+            {/* 🗑️ CISCO: Bouton de suppression d'URL */}
+            <button
+              onClick={clearWorkingUrl}
+              className="text-xs bg-red-600 hover:bg-red-700 px-2 py-1 rounded transition-colors"
+              title="Supprimer l'URL de travail"
+            >
+              🗑️
+            </button>
           </div>
         )}
 

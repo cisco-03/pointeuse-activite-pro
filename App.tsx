@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import * as SunCalc from 'suncalc';
+// 🔧 CISCO: SUPPRESSION - Plus de calculs astronomiques
+// import * as SunCalc from 'suncalc'; // SUPPRIMÉ
 import DynamicBackground from './Components/Background/DynamicBackground';
 import LoginBackground from './Components/Background/LoginBackground';
 import BackgroundInfo from './Components/UI/BackgroundInfo';
-import ControlButtonsWrapper from './Components/UI/ControlButtonsWrapper';
+// 🔧 CISCO: SUPPRESSION - Plus de wrapper de contrôles complexes
+// import ControlButtonsWrapper from './Components/UI/ControlButtonsWrapper'; // SUPPRIMÉ
 import SlideFooter from './Components/UI/SlideFooter';
-import AmbientSoundManager from './Components/Audio/AmbientSoundManager';
+import AmbientSoundManagerV2 from './Components/Audio/AmbientSoundManagerV2';
 import TimerSoundEffects from './Components/Audio/TimerSoundEffects';
 import MultiTabManager from './Components/Utils/MultiTabManager';
 
-import { TimeProvider, useTime } from './Components/Context/TimeContext';
-import { LocationProvider, useLocation } from './Components/Context/LocationContext';
+
+// 🔧 CISCO: SUPPRESSION - Plus de contextes GPS/temps simulé
+// import { TimeProvider, useTime } from './Components/Context/TimeContext'; // SUPPRIMÉ
+// import { LocationProvider, useLocation } from './Components/Context/LocationContext'; // SUPPRIMÉ
 import { auth, db, googleProvider } from './firebase';
 import {
   onAuthStateChanged,
@@ -50,32 +54,8 @@ const StopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" /></svg>;
 const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
 
-// Composant wrapper pour utiliser le hook useTime avec les contrôles
-const ControlButtonsWrapperWithTime: React.FC<{
-  audioEnabled: boolean;
-  audioVolume: number;
-  onToggleEnabled: (enabled: boolean) => void;
-  onVolumeChange: (volume: number) => void;
-  onSetMode: (mode: string) => void;
-  onResetToAuto: () => void;
-  lang: Lang;
-}> = ({ audioEnabled, audioVolume, onToggleEnabled, onVolumeChange, onSetMode, onResetToAuto, lang }) => {
-  const { getCurrentTime, setSimulatedTime } = useTime();
-
-  return (
-    <ControlButtonsWrapper
-      currentSimulatedTime={getCurrentTime()}
-      onTimeChange={setSimulatedTime}
-      audioEnabled={audioEnabled}
-      audioVolume={audioVolume}
-      onToggleEnabled={onToggleEnabled}
-      onVolumeChange={onVolumeChange}
-      onSetMode={onSetMode}
-      onResetToAuto={onResetToAuto}
-      lang={lang}
-    />
-  );
-};
+// 🔧 CISCO: SUPPRESSION - Plus de wrapper avec useTime
+// const ControlButtonsWrapperWithTime = ... // SUPPRIMÉ
 
 
 // ========= TYPES =========
@@ -160,7 +140,7 @@ const translations: { [key in Lang]: Translations } = {
     helpContent: `
 GUIDE D'UTILISATION COMPLET
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 DÉMARRAGE RAPIDE
 
@@ -171,7 +151,7 @@ DÉMARRAGE RAPIDE
 5. Ajoutez des notes pendant votre session de travail
 6. Cliquez sur "Arrêter" pour terminer la session
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 MODES DE FONCTIONNEMENT
 
@@ -191,7 +171,7 @@ CHRONOMÈTRE vs COMPTE À REBOURS
 - Compte à rebours : définissez une durée cible
 - Basculez entre les modes selon vos besoins
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 FONCTIONNALITÉS AVANCÉES
 
@@ -215,7 +195,7 @@ EXPORT ET PARTAGE
 - Envoi direct par email
 - Archivage sélectif des sessions
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 INTERFACE ET NAVIGATION
 
@@ -232,7 +212,7 @@ CONTRÔLES AUDIO ET VISUELS
 - Arrière-plans dynamiques selon l'heure
 - Mode manuel ou automatique
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 CONSEILS D'UTILISATION
 
@@ -254,7 +234,7 @@ SÉCURITÉ
 - Données privées et chiffrées
 - Aucune perte de données en cas de fermeture
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 SUPPORT ET LANGUES
 
@@ -364,7 +344,7 @@ Toutes vos données sont préservées lors du changement de langue.
     helpContent: `
 COMPLETE USER GUIDE
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 QUICK START
 
@@ -375,7 +355,7 @@ QUICK START
 5. Add notes during your work session
 6. Click "Stop" to end the session
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 OPERATING MODES
 
@@ -395,7 +375,7 @@ STOPWATCH vs COUNTDOWN
 - Countdown: set a target duration
 - Switch between modes as needed
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 ADVANCED FEATURES
 
@@ -419,7 +399,7 @@ EXPORT AND SHARING
 - Direct email sending
 - Selective session archiving
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 INTERFACE AND NAVIGATION
 
@@ -436,7 +416,7 @@ AUDIO AND VISUAL CONTROLS
 - Dynamic backgrounds according to time
 - Manual or automatic mode
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 USAGE TIPS
 
@@ -458,7 +438,7 @@ SECURITY
 - Private and encrypted data
 - No data loss in case of closure
 
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════
 
 SUPPORT AND LANGUAGES
 
@@ -978,7 +958,7 @@ const useFirestore = (userId: string | undefined) => {
         URL.revokeObjectURL(url);
     };
 
-    const exportToPDF = (sessions: Session[], filename: string) => {
+    const exportToPDF = (sessions: Session[], _filename: string) => {
         // Pour le PDF, on va créer un contenu HTML et utiliser window.print()
         const printContent = `
             <html>
@@ -1559,10 +1539,12 @@ const Header: React.FC<{
     onShowAgencySelector: () => void;
     onShowHistory: () => void;
     onShowArchives: () => void;
+    onShowMultiTabManager: () => void; // 🔄 CISCO: Nouveau bouton widget multi-onglets
     showAgencySelector: boolean;
     showHistory: boolean;
     showArchives: boolean;
-}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, showAgencySelector, showHistory, showArchives }) => {
+    showMultiTabManager: boolean; // 🔄 CISCO: État du widget multi-onglets
+}> = ({ user, onLogout, lang, setLang, t, onShowHelp, onShowAgencySelector, onShowHistory, onShowArchives, onShowMultiTabManager, showAgencySelector, showHistory, showArchives, showMultiTabManager }) => {
     return (
         <header className="bg-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 print:hidden fixed top-0 left-0 right-0" style={{ zIndex: 50 }}>
             <h1 className="text-lg sm:text-xl font-bold text-teal-500 text-center sm:text-left">{t.loginTitle as string}</h1>
@@ -1599,6 +1581,19 @@ const Header: React.FC<{
                     title={showArchives ? `Fermer ${t.showArchives as string}` : `Ouvrir ${t.showArchives as string}`}
                 >
                     <span className="hidden sm:inline">{showArchives ? '📦 ' : '📦 '}</span>{t.showArchives as string}
+                </button>
+
+                {/* 🔄 CISCO: Bouton Widget Multi-onglets */}
+                <button
+                    onClick={onShowMultiTabManager}
+                    className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                        showMultiTabManager
+                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                    }`}
+                    title={showMultiTabManager ? 'Masquer le widget multi-onglets' : 'Afficher le widget multi-onglets'}
+                >
+                    <span className="hidden sm:inline">{showMultiTabManager ? '🔄 ' : '🔄 '}</span>Multi-onglets
                 </button>
 
                 <button
@@ -2014,7 +2009,7 @@ const AppWithLocation: React.FC<{
     deleteArchivedSessions: (sessions: Session[]) => Promise<boolean>;
     deleteArchivedSession: (session: Session) => Promise<boolean>;
     logout: () => Promise<void>;
-}> = ({ user, lang, setLang, t, agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives, getOldSessions, exportToJSON, exportToCSV, exportToTXT, exportToPDF, archiveSessions, deleteHistorySession, deleteArchivedSessions, deleteArchivedSession, logout }) => {
+}> = ({ user, lang, setLang, t, agencies, addAgency, deleteAgency, history, archives, saveSession, clearHistory, fetchArchives, getOldSessions: _getOldSessions, exportToJSON, exportToCSV, exportToTXT, exportToPDF, archiveSessions: _archiveSessions, deleteHistorySession, deleteArchivedSessions: _deleteArchivedSessions, deleteArchivedSession, logout }) => {
     const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
     const [newAgencyName, setNewAgencyName] = useState('');
     const [showAddAgency, setShowAddAgency] = useState(false);
@@ -2054,71 +2049,27 @@ const AppWithLocation: React.FC<{
     const [audioVolume, setAudioVolume] = useState(0.5);
 
     // 🔄 CISCO: États pour la gestion multi-onglets
-    const [multiTabEnabled, setMultiTabEnabled] = useState(true);
+    const [multiTabEnabled] = useState(true);
     const [showMultiTabManager, setShowMultiTabManager] = useState(false);
-    const [workingUrl, setWorkingUrl] = useState<string>('');
+    const [, setWorkingUrl] = useState<string>('');
 
-    const [currentBackgroundMode, setCurrentBackgroundMode] = useState('night');
-    const [isManualMode, setIsManualMode] = useState(false);
-    const { userLocation, locationReady } = useLocation(); // Get location from context
+    // 🔧 CISCO: Mode par défaut = 12h (midday) - Mode manuel uniquement
+    const [currentBackgroundMode, setCurrentBackgroundMode] = useState('midday');
 
-    // Centralized function to determine mode from time
-    const getModeForTime = useCallback((date: Date) => {
-        if (locationReady && userLocation) {
-            const sunTimes = SunCalc.getTimes(date, userLocation.lat, userLocation.lon);
-            const currentTime = date.getTime();
-            if (currentTime < sunTimes.dawn.getTime()) return 'night';
-            if (currentTime < sunTimes.sunrise.getTime()) return 'dawn';
-            if (currentTime < sunTimes.sunrise.getTime() + (2 * 60 * 60 * 1000)) return 'sunrise';
-            if (currentTime < sunTimes.solarNoon.getTime() - (1 * 60 * 60 * 1000)) return 'morning';
-            if (currentTime < sunTimes.solarNoon.getTime() + (3 * 60 * 60 * 1000)) return 'midday';
-            if (currentTime < sunTimes.sunset.getTime() - (1 * 60 * 60 * 1000)) return 'afternoon';
-            if (currentTime < sunTimes.sunset.getTime()) return 'sunset';
-            if (currentTime < sunTimes.dusk.getTime()) return 'dusk';
-            return 'night';
-        } else {
-            const hour = date.getHours();
-            if (hour >= 5 && hour < 6) return 'dawn';
-            if (hour >= 6 && hour < 8) return 'sunrise';
-            if (hour >= 8 && hour < 11) return 'morning';
-            if (hour >= 11 && hour < 15) return 'midday';
-            if (hour >= 15 && hour < 18) return 'afternoon';
-            if (hour >= 18 && hour < 20) return 'sunset';
-            if (hour >= 20 && hour < 22) return 'dusk';
-            return 'night';
-        }
-    }, [locationReady, userLocation]);
+    // 🔧 CISCO: SUPPRESSION COMPLÈTE - Plus de fonction automatique
+    // const getModeForTime = ... // SUPPRIMÉ
+    // useEffect automatique // SUPPRIMÉ
 
-    // Effect for automatic mode changes
-    useEffect(() => {
-        // Set initial mode
-        setCurrentBackgroundMode(getModeForTime(new Date()));
-
-        const interval = setInterval(() => {
-            if (!isManualMode) {
-                setCurrentBackgroundMode(prevMode => {
-                    const newMode = getModeForTime(new Date());
-                    return newMode !== prevMode ? newMode : prevMode;
-                });
-            }
-        }, 60000); // Check every minute
-
-        return () => clearInterval(interval);
-    }, [isManualMode, getModeForTime]);
-
-
-    // Manual mode change handler
+    // 🔧 CISCO: Gestionnaire de changement de mode - Mode manuel uniquement
     const handleSetMode = (mode: string) => {
-        console.log(`🕹️ Manual mode override: ${mode}`);
-        setIsManualMode(true);
+        console.log(`🎯 Changement de mode manuel: ${mode}`);
         setCurrentBackgroundMode(mode);
     };
 
-    // Reset to automatic mode
+    // 🔧 CISCO: Fonction simplifiée - Retour au mode par défaut (12h)
     const handleResetToAuto = () => {
-        console.log('🔄 Resetting to automatic mode detection.');
-        setIsManualMode(false);
-        setCurrentBackgroundMode(getModeForTime(new Date()));
+        console.log('🔄 Retour au mode par défaut: midday (12h)');
+        setCurrentBackgroundMode('midday');
     };
 
 
@@ -2461,8 +2412,7 @@ const AppWithLocation: React.FC<{
     const canStart = freeMode || (firstTask.trim() !== '' && selectedAgencyId !== '');
 
     return (
-        <TimeProvider>
-            <DynamicBackground skyMode={currentBackgroundMode}>
+        <DynamicBackground skyMode={currentBackgroundMode}>
                 <div className="font-sans">
 
                     <Header
@@ -2484,9 +2434,13 @@ const AppWithLocation: React.FC<{
                                     fetchArchives(); // Charger les archives quand on ouvre la section
                                 }
                             }}
+                            onShowMultiTabManager={() => {
+                                setShowMultiTabManager(!showMultiTabManager);
+                            }}
                             showAgencySelector={showAgencySelector}
                             showHistory={showHistory}
                             showArchives={showArchives}
+                            showMultiTabManager={showMultiTabManager}
                         />
 
             <main className="p-3 sm:p-4 lg:p-8 max-w-4xl mx-auto pt-48 sm:pt-52 md:pt-56">
@@ -2679,6 +2633,79 @@ const AppWithLocation: React.FC<{
 
             </main>
 
+            {/* 🎨 CISCO: Panneau de contrôle des modes d'arrière-plan - Mode manuel uniquement */}
+            <div className="fixed bottom-4 left-4 bg-black/90 text-white p-4 rounded-lg backdrop-blur-sm z-40 shadow-xl max-w-sm">
+                <h3 className="text-lg font-bold text-teal-400 mb-3">🌅 Modes d'Arrière-plan</h3>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                    <button onClick={() => handleSetMode('night')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'night' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌌 Nuit profonde
+                    </button>
+                    <button onClick={() => handleSetMode('dawn')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'dawn' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌅 Aube
+                    </button>
+                    <button onClick={() => handleSetMode('sunrise')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'sunrise' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌄 Lever de soleil
+                    </button>
+                    <button onClick={() => handleSetMode('morning')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'morning' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌞 Matin
+                    </button>
+                    <button onClick={() => handleSetMode('midday')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'midday' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        ☀️ 12h Zénith
+                    </button>
+                    <button onClick={() => handleSetMode('afternoon')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'afternoon' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌇 Après-midi
+                    </button>
+                    <button onClick={() => handleSetMode('sunset')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'sunset' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌆 Coucher de soleil
+                    </button>
+                    <button onClick={() => handleSetMode('dusk')} className={`px-3 py-2 rounded text-xs transition-all ${currentBackgroundMode === 'dusk' ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        🌃 Crépuscule
+                    </button>
+                </div>
+
+                {/* 🎵 CISCO: Contrôles audio intégrés */}
+                <div className="border-t border-gray-600 pt-3 mt-3">
+                    <h4 className="text-sm font-bold text-purple-400 mb-2">🎵 Audio d'Ambiance</h4>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-300">Audio :</span>
+                        <button
+                            onClick={() => setAudioEnabled(!audioEnabled)}
+                            className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                                audioEnabled
+                                    ? 'bg-green-600 text-white hover:bg-green-700'
+                                    : 'bg-orange-600 text-white hover:bg-orange-500'
+                            }`}
+                        >
+                            {audioEnabled ? 'Activé' : 'Désactivé'}
+                        </button>
+                    </div>
+                    {audioEnabled && (
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-gray-300">Volume :</span>
+                                <span className="text-xs text-gray-400">{Math.round(audioVolume * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={audioVolume}
+                                onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
+                                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                    )}
+                </div>
+
+                <button
+                    onClick={handleResetToAuto}
+                    className="w-full bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-xs transition-colors mt-3"
+                >
+                    🔄 Retour 12h
+                </button>
+            </div>
+
             {/* Modals */}
             {showInactivityModal && (
                  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -2772,9 +2799,9 @@ const AppWithLocation: React.FC<{
             {/* Help Modal */}
             {showHelp && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg max-w-2xl w-full max-h-[80vh]">
                         <h3 className="text-xl sm:text-2xl font-bold mb-4 text-blue-400">{t.helpTitle as string}</h3>
-                        <div className="text-gray-300 mb-6 whitespace-pre-line text-sm sm:text-base">
+                        <div className="text-gray-300 mb-6 whitespace-pre-line text-sm sm:text-base max-h-[60vh] overflow-hidden">
                             {t.helpContent as string}
                         </div>
                         <button
@@ -2849,7 +2876,7 @@ const AppWithLocation: React.FC<{
             `}</style>
 
                     {/* Système d'ambiance sonore - Connecté automatiquement */}
-                    <AmbientSoundManager
+                    <AmbientSoundManagerV2
                         skyMode={currentBackgroundMode}
                         enabled={audioEnabled}
                         volume={audioVolume}
@@ -2861,31 +2888,26 @@ const AppWithLocation: React.FC<{
                         volume={audioVolume}
                     />
 
+                    {/* 🌙 CISCO: Animation de la lune déplacée dans AstronomicalLayer pour ordre DOM correct */}
+
                     {/* 🔄 CISCO: Gestionnaire multi-onglets */}
-                    <MultiTabManager
-                        enabled={multiTabEnabled}
-                        onVisibilityChange={handleTabVisibilityChange}
-                        onWorkingUrlChange={handleWorkingUrlChange}
-                    />
+                    {showMultiTabManager && (
+                        <MultiTabManager
+                            enabled={multiTabEnabled}
+                            onVisibilityChange={handleTabVisibilityChange}
+                            onWorkingUrlChange={handleWorkingUrlChange}
+                        />
+                    )}
 
                     <BackgroundInfo />
 
-                    {/* Boutons de contrôle repositionnés avec flexbox */}
-                    <ControlButtonsWrapperWithTime
-                        audioEnabled={audioEnabled}
-                        audioVolume={audioVolume}
-                        onToggleEnabled={setAudioEnabled}
-                        onVolumeChange={setAudioVolume}
-                        onSetMode={handleSetMode}
-                        onResetToAuto={handleResetToAuto}
-                        lang={lang}
-                    />
+                    {/* 🔧 CISCO: SUPPRESSION - Plus de contrôles de temps simulé */}
+                    {/* Boutons de contrôle supprimés - Mode manuel simple via interface principale */}
 
                     {/* Footer slide avec liens sociaux */}
                     <SlideFooter />
                 </div>
             </DynamicBackground>
-        </TimeProvider>
     );
 };
 
@@ -2924,31 +2946,29 @@ export default function App() {
     }
 
     return (
-        <LocationProvider>
-            <AppWithLocation
-                user={user}
-                lang={lang}
-                setLang={setLang}
-                t={t}
-                agencies={agencies}
-                addAgency={addAgency}
-                deleteAgency={deleteAgency}
-                history={history}
-                archives={archives}
-                saveSession={saveSession}
-                clearHistory={clearHistory}
-                fetchArchives={fetchArchives}
-                getOldSessions={getOldSessions}
-                exportToJSON={exportToJSON}
-                exportToCSV={exportToCSV}
-                exportToTXT={exportToTXT}
-                exportToPDF={exportToPDF}
-                archiveSessions={archiveSessions}
-                deleteHistorySession={deleteHistorySession}
-                deleteArchivedSessions={deleteArchivedSessions}
-                deleteArchivedSession={deleteArchivedSession}
-                logout={logout}
-            />
-        </LocationProvider>
+        <AppWithLocation
+            user={user}
+            lang={lang}
+            setLang={setLang}
+            t={t}
+            agencies={agencies}
+            addAgency={addAgency}
+            deleteAgency={deleteAgency}
+            history={history}
+            archives={archives}
+            saveSession={saveSession}
+            clearHistory={clearHistory}
+            fetchArchives={fetchArchives}
+            getOldSessions={getOldSessions}
+            exportToJSON={exportToJSON}
+            exportToCSV={exportToCSV}
+            exportToTXT={exportToTXT}
+            exportToPDF={exportToPDF}
+            archiveSessions={archiveSessions}
+            deleteHistorySession={deleteHistorySession}
+            deleteArchivedSessions={deleteArchivedSessions}
+            deleteArchivedSession={deleteArchivedSession}
+            logout={logout}
+        />
     );
 }

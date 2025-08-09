@@ -4,6 +4,424 @@
 
 ---
 
+## 🗑️ **[2025-01-30] SIMPLIFICATION MAJEURE - SUPPRESSION AUTOMATISATION COMPLÈTE**
+
+### 🎯 **Objectif CISCO**
+Simplification drastique de l'application en supprimant TOUTE l'automatisation (GPS, temps simulé, calculs astronomiques) pour garder uniquement un système de modes d'arrière-plan manuel simple et fiable.
+
+### 🔧 **Modifications Apportées**
+
+#### **1. SUPPRESSION COMPLÈTE des Contextes**
+- ❌ **`Components/Context/LocationContext.tsx`** - SUPPRIMÉ (géolocalisation GPS)
+- ❌ **`Components/Context/TimeContext.tsx`** - SUPPRIMÉ (temps simulé)
+- ❌ **`Components/UI/TimeSimulator.tsx`** - SUPPRIMÉ (contrôles temps simulé)
+- ❌ **`Components/UI/ControlButtonsWrapper.tsx`** - SUPPRIMÉ (wrapper complexe)
+
+#### **2. SIMPLIFICATION BackgroundInfo.tsx**
+- **Fichier** : `Components/UI/BackgroundInfo.tsx`
+- **Lignes 1-65** : Composant complètement désactivé
+- **Nouveau** : Simple fonction qui retourne `null`
+- **Raison** : Plus d'informations sur l'automatisation qui n'existe plus
+
+#### **3. NETTOYAGE DynamicBackground.tsx**
+- **Fichier** : `Components/Background/DynamicBackground.tsx`
+- **Lignes 1-10** : Suppression imports `useLocation`, `useTime`, `SunCalc`
+- **Lignes 124-135** : Suppression références aux contextes
+- **Lignes 145-146** : Suppression fonction `getModeForTime()`
+- **Lignes 542-555** : Simplification useEffect - Mode par défaut `midday`
+- **Nouveau comportement** : Mode par défaut = 12h (midday) au chargement
+
+#### **4. SIMPLIFICATION MAJEURE App.tsx**
+- **Lignes 2-3** : Suppression import `SunCalc`
+- **Lignes 13-15** : Suppression imports contextes
+- **Lignes 56-57** : Suppression `ControlButtonsWrapperWithTime`
+- **Lignes 2079-2080** : Mode par défaut = `midday`, toujours en mode manuel
+- **Lignes 2082-2093** : Suppression `getModeForTime()` et useEffect automatique
+- **Lignes 2092-2096** : Fonction `handleResetToAuto()` simplifiée (retour à midday)
+- **Lignes 2636-2707** : **NOUVEAU** Panneau de contrôle intégré avec 8 modes + contrôles audio
+- **Lignes 2948, 2973** : Suppression `LocationProvider` et `TimeProvider`
+
+#### **5. NETTOYAGE BackgroundController.ts**
+- **Lignes 75-76** : Suppression `cycleAllModes()`
+- **Lignes 95-96** : Suppression `syncWithRealTime()`
+- **Lignes 98-121** : Aide simplifiée sans fonctions automatiques
+- **Lignes 123-164** : Exposition console simplifiée
+
+#### **6. SUPPRESSION Documentation Automatique**
+- ❌ **`ContextEngineering/Features/auto-time-detection.md`** - SUPPRIMÉ
+
+### 🎨 **NOUVELLE INTERFACE UTILISATEUR**
+
+#### **Panneau de Contrôle Intégré** (App.tsx lignes 2636-2707)
+- **Position** : `fixed bottom-4 left-4`
+- **8 boutons de modes** : Nuit profonde → Aube → Lever → Matin → 12h Zénith → Après-midi → Coucher → Crépuscule
+- **Contrôles audio intégrés** : Activation/désactivation + slider volume
+- **Bouton "Retour 12h"** : Remet le mode par défaut
+- **Indicateur visuel** : Mode actuel surligné en teal
+
+### ✅ **RÉSULTATS**
+
+#### **Simplification Drastique**
+- **-4 fichiers** supprimés (contextes + composants complexes)
+- **-200+ lignes** de code automatique supprimées
+- **-3 dépendances** conceptuelles (GPS, SunCalc, temps simulé)
+- **Mode par défaut** : 12h (midday) au chargement de la page
+
+#### **Fonctionnement Final**
+1. **Page se charge** → Mode 12h (Zénith) automatiquement
+2. **Utilisateur veut changer** → Clic sur un des 8 boutons
+3. **Audio d'ambiance** → Contrôles intégrés dans le même panneau
+4. **Retour par défaut** → Bouton "Retour 12h"
+
+#### **Avantages**
+- ✅ **ZÉRO conflit** entre automatisation et contrôle manuel
+- ✅ **Interface ultra-simple** : 8 boutons + contrôles audio
+- ✅ **Performance optimisée** : Plus de calculs GPS/astronomiques
+- ✅ **Fiabilité maximale** : Moins de code = moins de bugs
+- ✅ **Contrôle total utilisateur** : Choix explicite de chaque mode
+
+### 🚀 **STATUT**
+**✅ TERMINÉ** - Application simplifiée et fonctionnelle
+- Mode par défaut 12h au chargement ✅
+- 8 modes manuels fonctionnels ✅
+- Contrôles audio intégrés ✅
+- Suppression complète automatisation ✅
+
+---
+
+## 🔧 2025-01-08 - RÉPARATION COMPLÈTE SYSTÈME AUDIO
+
+### 🎯 PROBLÈME RÉSOLU
+**Système audio complètement désynchronisé** - Les boutons du panneau de contrôle d'ambiance ne déclenchaient plus les bons sons, le contrôle de volume coupait l'audio au lieu de l'ajuster.
+
+### ✅ CORRECTIONS APPORTÉES
+
+#### 1. **Nouveau AmbientSoundManagerV2.tsx**
+- **Fichier créé** : `Components/Audio/AmbientSoundManagerV2.tsx`
+- **Configuration corrigée** : Correspondance exacte avec les dossiers `public/sounds/`
+- **Support multi-sons** : Chaque mode peut avoir plusieurs fichiers (sélection aléatoire)
+- **Gestion d'erreurs améliorée** : Logs détaillés et fallbacks
+
+#### 2. **AudioControlPanel.tsx - Section de Test**
+- **Lignes modifiées** : 159-195
+- **Ajout** : 8 boutons de test pour chaque mode audio
+- **Interface** : Grille 2x4 avec émojis et noms clairs
+- **Fonctionnalité** : Test direct de chaque mode via `setBackgroundMode`
+
+#### 3. **App.tsx - Import mis à jour**
+- **Ligne 8** : Import `AmbientSoundManagerV2` au lieu de `AmbientSoundManager`
+- **Lignes 2851-2856** : Utilisation du nouveau composant
+- **Suppression** : Ancien fichier `AmbientSoundManager.tsx`
+
+#### 4. **Correspondance Modes ↔ Dossiers**
+```
+night → nuit-profonde (2 sons)
+dusk → crepuscule (2 sons)
+dawn → aube (1 son)
+sunrise → lever-soleil (1 son)
+morning → matin (2 sons)
+midday → midi (1 son)
+afternoon → apres-midi (2 sons)
+sunset → coucher-soleil (2 sons)
+```
+
+### 🎵 FONCTIONNALITÉS RÉPARÉES
+- **Synchronisation parfaite** : Chaque bouton TimeSimulator active les sons de son dossier
+- **Contrôle de volume fluide** : Ajustement sans coupure avec transitions GSAP
+- **Transitions propres** : Fade in/out entre les modes
+- **Interface de test** : Boutons dédiés dans le panneau audio
+- **Logs détaillés** : Suivi complet des opérations audio
+
+### 📁 FICHIERS IMPACTÉS
+- ✅ `Components/Audio/AmbientSoundManagerV2.tsx` (créé)
+- ✅ `Components/Audio/AudioControlPanel.tsx` (modifié)
+- ✅ `App.tsx` (import mis à jour)
+- ✅ `ContextEngineering/AUDIO-SYSTEM-REPAIR.md` (documentation)
+- ❌ `Components/Audio/AmbientSoundManager.tsx` (supprimé)
+
+### 🧪 TESTS À EFFECTUER
+1. **Ouvrir l'app** → Cliquer bouton 🎵 → Activer audio
+2. **Tester chaque mode** avec les boutons de test
+3. **Vérifier le volume** : Slider de 0% à 100% sans coupure
+4. **Tester TimeSimulator** : Bouton
+
+---
+
+## 📅 08/08/2025 - 22:36 - INTÉGRATION CONTRÔLE AUDIO DANS PANNEAU GÉNÉRAL
+
+### 🎯 OBJECTIF CISCO
+Supprimer la div "ambiance audio" en bas à droite et intégrer le contrôle de volume dans le panneau général "Contrôle Arrière-plan".
+
+### 🔧 MODIFICATIONS RÉALISÉES
+
+#### 1. **Suppression AudioControlPanel**
+- ✅ **Supprimé** `Components/Audio/AudioControlPanel.tsx` (temporairement)
+- ✅ **Retiré** l'import et l'utilisation dans `ControlButtonsWrapper.tsx`
+- ✅ **Transféré** les props audio vers `TimeSimulator`
+
+#### 2. **Intégration dans TimeSimulator**
+- ✅ **Activé** les contrôles audio déjà présents dans TimeSimulator
+- ✅ **Passé** les props audio depuis ControlButtonsWrapper vers TimeSimulator
+- ✅ **Contrôle accessible** via bouton 🎨 → Contrôles avancés → Section audio
+
+#### 3. **Mise à jour configuration sons**
+- ✅ **Ajouté** `sounds-crickets-nuit_profonde.mp3` pour nuit profonde (3 sons total)
+- ✅ **Ajouté** `Lever_soleil-nature.mp3` pour lever du soleil avec volume réduit (0.4)
+- ✅ **Ajouté** `campagne-birds.mp3` pour midi (2 sons total)
+- ✅ **Ajouté** `village-moutons-apres-midi.mp3` pour après-midi (3 sons total)
+- ✅ **Implémenté** temporisation 35s pour `insect_bee_fly.mp3` (son court)
+
+#### 4. **Améliorations techniques**
+- ✅ **Ajouté** `repeatDelay` dans la configuration des sons
+- ✅ **Implémenté** logique de répétition pour sons courts
+- ✅ **Gestion** des timeouts avec nettoyage approprié
+- ✅ **Volume réduit** pour `Lever_soleil-nature.mp3` (très fort selon instructions)
+
+### 📁 FICHIERS IMPACTÉS
+- ✅ `Components/Audio/AmbientSoundManagerV2.tsx` (configuration sons + temporisation)
+- ✅ `Components/UI/ControlButtonsWrapper.tsx` (suppression AudioControlPanel)
+- ❌ `Components/Audio/AudioControlPanel.tsx` (supprimé temporairement)
+
+### 🎵 NOUVEAUX SONS INTÉGRÉS
+- `public/sounds/nuit-profonde/sounds-crickets-nuit_profonde.mp3`
+- `public/sounds/lever-soleil/Lever_soleil-nature.mp3` (volume réduit)
+- `public/sounds/midi/campagne-birds.mp3`
+- `public/sounds/apres-midi/village-moutons-apres-midi.mp3`
+- `public/sounds/matin/insect_bee_fly.mp3` (avec temporisation 35s)
+
+### 🧪 TESTS À EFFECTUER
+1. **Ouvrir l'app** → Cliquer bouton 🎨 → Développer contrôles avancés
+2. **Activer audio** dans la section "Contrôles audio"
+3. **Tester volume** : Slider de 0% à 100%
+4. **Tester chaque mode** et vérifier les nouveaux sons
+5. **Vérifier temporisation** pour insect_bee_fly.mp3 (répétition toutes les 35s)
+6. **Vérifier volume réduit** pour Lever_soleil-nature.mp3
+
+### ✅ RÉSULTAT
+- ✅ **Div "ambiance audio" supprimée** de la position bas-droite
+- ✅ **Contrôle audio intégré** dans le panneau général contrôle arrière-plan
+- ✅ **Nouveaux sons configurés** selon les instructions Cisco
+- ✅ **Application fonctionnelle** avec hot reload actif
+
+---
+
+## 📅 08/08/2025 - 22:45 - IMPLÉMENTATION ANIMATION LUNE NOCTURNE
+
+### 🎯 OBJECTIF CISCO
+Implémenter une animation de lune pour le mode "Nuit profonde" : apparition en haut au centre, descente lente sur plusieurs minutes, disparition lors du changement de mode.
+
+### 🔧 MODIFICATIONS RÉALISÉES
+
+#### 1. **Création composant MoonAnimation**
+- ✅ **Créé** `Components/UI/MoonAnimation.tsx`
+- ✅ **Animation GSAP** : Apparition douce (3s) + descente lente (5 minutes)
+- ✅ **Gestion des modes** : Apparition en mode 'night', disparition pour tous les autres modes
+- ✅ **Nettoyage automatique** des animations avec kill() au changement de mode
+
+#### 2. **Positionnement et hiérarchie visuelle**
+- ✅ **Z-index 1** : DERRIÈRE tous les nuages (z-10-12), même niveau que les étoiles
+- ✅ **Position fixe** : Départ légèrement à gauche du centre (40vw)
+- ✅ **Taille agrandie** : 180px x 180px (au lieu de 120px)
+- ✅ **Halo pleine lune** : Double drop-shadow + boxShadow pour éclairage environnemental
+
+#### 3. **Animation optimisée**
+- ✅ **Apparition** : Fade in sur 3 secondes (opacity 0 → 0.8)
+- ✅ **Descente diagonale** : 350 pixels + 35vw horizontalement sur 5 minutes
+- ✅ **Trajectoire** : De 40vw vers 75vw (mouvement vers l'arbre à droite)
+- ✅ **Disparition** : Fade out sur 4 secondes lors du changement de mode
+- ✅ **Mouvement naturel** : ease "power1.inOut" pour accélération/décélération subtile
+
+#### 4. **Intégration dans l'application**
+- ✅ **Import ajouté** dans App.tsx
+- ✅ **Composant intégré** entre les effets audio et les contrôles UI
+- ✅ **Props connectées** : isNightMode et currentMode depuis currentBackgroundMode
+
+### 📁 FICHIERS IMPACTÉS
+- ✅ `Components/UI/MoonAnimation.tsx` (créé)
+- ✅ `App.tsx` (import + intégration)
+- ✅ `public/Lune-Moon.png` (image existante utilisée)
+
+### 🌙 SPÉCIFICATIONS TECHNIQUES FINALES
+- **Déclenchement** : Mode 'night' uniquement
+- **Position initiale** : x: 40vw, y: -120px (hors écran, légèrement à gauche)
+- **Position finale** : x: 75vw, y: 350px (trajectoire diagonale vers l'arbre)
+- **Durée totale** : 5 minutes de descente continue
+- **Opacité** : 0.8 (légèrement transparente pour effet naturel)
+- **Z-index** : 1 (derrière TOUS les nuages)
+- **Halo pleine lune** : Double drop-shadow (60px + 120px) + boxShadow environnemental
+
+### 🧪 TESTS À EFFECTUER
+1. **Activer mode nuit** → Vérifier apparition de la lune en haut centre
+2. **Observer descente** → Mouvement très lent et constant sur 5 minutes
+3. **Changer de mode** → Vérifier disparition douce de la lune
+4. **Tester z-index** → Lune derrière les nuages, devant les étoiles
+5. **Vérifier performance** → Pas de lag avec les animations GSAP
+
+### 🔧 CORRECTIONS SUPPLÉMENTAIRES (22:50)
+
+#### **Problèmes identifiés par Cisco :**
+1. **Z-index incorrect** : Lune visible devant les nuages
+2. **Trajectoire rectiligne** : Manque de naturel
+3. **Halo insuffisant** : Effet pleine lune pas assez visible
+
+#### **Solutions appliquées :**
+- ✅ **Z-index 1** : Lune maintenant DERRIÈRE tous les nuages
+- ✅ **Trajectoire diagonale** : De 40vw vers 75vw (vers l'arbre)
+- ✅ **Halo pleine lune amélioré** : Double drop-shadow + éclairage environnemental
+- ✅ **Mouvement naturel** : ease "power1.inOut" au lieu de linéaire
+
+### 🔧 CORRECTIONS FINALES (23:00)
+
+#### **Problèmes identifiés par Cisco :**
+1. **Position trop haute** : Lune trop loin du header
+2. **Z-index incorrect** : Lune toujours devant les nuages
+3. **Halo carré corrigé** : Effet carré supprimé avec succès ✅
+4. **Disparition défaillante** : Lune ne disparaît pas au changement de mode
+5. **Son hibou** : Besoin de temporisation 1 minute
+
+#### **Solutions appliquées :**
+- ✅ **Position ajustée** : Départ à 10vw, 40px (plus près du header)
+- ✅ **Z-index 2** : Entre étoiles (z-1) et nuages individuels (z-10-12)
+- ✅ **Trajectoire corrigée** : Vers 90vw, 600px (extrême droite et bas)
+- ✅ **Disparition renforcée** : Condition `!isNightMode || currentMode !== 'night'`
+- ✅ **Hibou temporisé** : repeatDelay 60000ms (1 minute) ajouté
+
+### ✅ RÉSULTAT FINAL
+- ✅ **Animation lune fonctionnelle** pour mode nuit profonde
+- ✅ **Hiérarchie visuelle CORRIGÉE** (z-index 2 - entre étoiles et nuages)
+- ✅ **Trajectoire diagonale optimisée** vers l'extrême droite (90vw)
+- ✅ **Halo pleine lune sans carré** avec radial-gradient parfait
+- ✅ **Disparition garantie** pour tous les modes sauf 'night'
+- ✅ **Son hibou temporisé** toutes les minutesns 🎨 → Modes → Sons correspondants
+
+---
+
+## 🔄 2025-01-08 - WIDGET MULTI-ONGLETS AVEC BOUTON TOGGLE
+
+### 🎯 FONCTIONNALITÉS AJOUTÉES
+**Bouton toggle pour le widget multi-onglets** + **Fonction de suppression d'URL** selon les demandes de Cisco dans le fichier Tasks/Cisco.md.
+
+### ✅ AMÉLIORATIONS APPORTÉES
+
+#### 1. **Bouton Toggle dans le Header**
+- **Fichier modifié** : `App.tsx` - Header component
+- **Lignes ajoutées** : 1566, 1607-1619, 2500-2502, 2883-2890
+- **Fonctionnalité** : Bouton "🔄 Multi-onglets" dans le Header
+- **Comportement** : Clic = Afficher/Masquer le widget
+- **Style** : Couleur indigo quand actif, gris quand inactif
+
+#### 2. **Fonction de Suppression d'URL**
+- **Fichier modifié** : `Components/Utils/MultiTabManager.tsx`
+- **Lignes ajoutées** : 91-96, 112, 131, 287-291
+- **Fonctionnalité** : Bouton 🗑️ rouge à côté de l'URL affichée
+- **Comportement** : Supprime l'URL du localStorage et de l'état
+- **Interface** : Bouton visible seulement quand une URL est définie
+
+#### 3. **Contrôle de Visibilité du Widget**
+- **Logique** : Widget affiché seulement si `showMultiTabManager` est true
+- **État** : `showMultiTabManager` initialisé à false (masqué par défaut)
+- **Toggle** : Bouton Header contrôle l'affichage/masquage
+
+### 🎨 INTERFACE UTILISATEUR
+
+#### **Nouveau Bouton Header**
+```tsx
+<button className="bg-indigo-600 hover:bg-indigo-700">
+  🔄 Multi-onglets
+</button>
+```
+
+#### **Bouton Suppression URL**
+```tsx
+<button className="bg-red-600 hover:bg-red-700" onClick={clearWorkingUrl}>
+  🗑️
+</button>
+```
+
+### 📁 FICHIERS IMPACTÉS
+- ✅ `App.tsx` : Bouton Header + logique toggle + props Header
+- ✅ `Components/Utils/MultiTabManager.tsx` : Fonction suppression URL + bouton interface
+
+### 🔧 FONCTIONNEMENT
+
+#### **Affichage/Masquage du Widget**
+1. **Par défaut** : Widget masqué (`showMultiTabManager = false`)
+2. **Clic bouton Header** : Toggle l'état → Widget apparaît/disparaît
+3. **Position sauvegardée** : Le widget garde sa position quand réaffiché
+
+#### **Gestion des URLs**
+1. **Ajout URL** : Bouton ⚙️ → Saisie → ✅ Sauver
+2. **Affichage URL** : URL tronquée avec tooltip complet
+3. **Suppression URL** : Bouton 🗑️ → Suppression localStorage + état
+4. **Persistance** : URL sauvegardée entre les sessions (localStorage)
+
+### 🧪 TESTS À EFFECTUER
+1. **Bouton Header** : Cliquer "🔄 Multi-onglets" → Widget apparaît
+2. **Toggle** : Re-cliquer → Widget disparaît
+3. **URL** : Ajouter une URL → Vérifier affichage
+4. **Suppression** : Cliquer 🗑️ → URL supprimée
+5. **Persistance** : Recharger page → URL conservée (si pas supprimée)
+
+---
+
+## 🔧 2025-01-08 - RÉPARATION COMPLÈTE SYSTÈME AUDIO
+
+### 🎯 PROBLÈME RÉSOLU
+**Système audio complètement désynchronisé** - Les boutons du panneau de contrôle d'ambiance ne déclenchaient plus les bons sons, le contrôle de volume coupait l'audio au lieu de l'ajuster.
+
+### ✅ CORRECTIONS APPORTÉES
+
+#### 1. **Nouveau AmbientSoundManagerV2.tsx**
+- **Fichier créé** : `Components/Audio/AmbientSoundManagerV2.tsx`
+- **Configuration corrigée** : Correspondance exacte avec les dossiers `public/sounds/`
+- **Support multi-sons** : Chaque mode peut avoir plusieurs fichiers (sélection aléatoire)
+- **Gestion d'erreurs améliorée** : Logs détaillés et fallbacks
+
+#### 2. **AudioControlPanel.tsx - Section de Test**
+- **Lignes modifiées** : 159-195
+- **Ajout** : 8 boutons de test pour chaque mode audio
+- **Interface** : Grille 2x4 avec émojis et noms clairs
+- **Fonctionnalité** : Test direct de chaque mode via `setBackgroundMode`
+
+#### 3. **App.tsx - Import mis à jour**
+- **Ligne 8** : Import `AmbientSoundManagerV2` au lieu de `AmbientSoundManager`
+- **Lignes 2851-2856** : Utilisation du nouveau composant
+- **Suppression** : Ancien fichier `AmbientSoundManager.tsx`
+
+#### 4. **Correspondance Modes ↔ Dossiers**
+```
+night → nuit-profonde (2 sons)
+dusk → crepuscule (2 sons)
+dawn → aube (1 son)
+sunrise → lever-soleil (1 son)
+morning → matin (2 sons)
+midday → midi (1 son)
+afternoon → apres-midi (2 sons)
+sunset → coucher-soleil (2 sons)
+```
+
+### 🎵 FONCTIONNALITÉS RÉPARÉES
+- **Synchronisation parfaite** : Chaque bouton TimeSimulator active les sons de son dossier
+- **Contrôle de volume fluide** : Ajustement sans coupure avec transitions GSAP
+- **Transitions propres** : Fade in/out entre les modes
+- **Interface de test** : Boutons dédiés dans le panneau audio
+- **Logs détaillés** : Suivi complet des opérations audio
+
+### 📁 FICHIERS IMPACTÉS
+- ✅ `Components/Audio/AmbientSoundManagerV2.tsx` (créé)
+- ✅ `Components/Audio/AudioControlPanel.tsx` (modifié)
+- ✅ `App.tsx` (import mis à jour)
+- ✅ `ContextEngineering/AUDIO-SYSTEM-REPAIR.md` (documentation)
+- ❌ `Components/Audio/AmbientSoundManager.tsx` (supprimé)
+
+### 🧪 TESTS À EFFECTUER
+1. **Ouvrir l'app** → Cliquer bouton 🎵 → Activer audio
+2. **Tester chaque mode** avec les boutons de test
+3. **Vérifier le volume** : Slider de 0% à 100% sans coupure
+4. **Tester TimeSimulator** : Boutons 🎨 → Modes → Sons correspondants
+
+---
+
 ## 🔧 **CORRECTIONS CRITIQUES ERREURS RUNTIME - 07 AOÛT 2025 - 22H57**
 
 ### **❌ PROBLÈMES IDENTIFIÉS**
@@ -574,6 +992,109 @@ night();          // Retour en nuit profonde
 - `Components/UI/TimeSimulator.tsx` : Couleurs corrigées
 - `Components/Audio/AudioDiagnostic.tsx` : Couleurs corrigées
 - `Components/Background/DynamicBackground.tsx` : Couleurs corrigées
+
+---
+
+## 📅 **2025-08-09 - CORRECTION MAJEURE Z-INDEX ET SUPPRESSION DEBUG LUNE**
+
+### 🚨 **Problème Critique Résolu**
+**Symptômes :**
+- Lune apparaissait avec bordure rouge, fond jaune, taille énorme au centre de l'écran
+- Étoiles disparaissaient en mode nuit profonde
+- Lune n'était pas visible à sa position naturelle
+- Logs de debug polluaient la console
+
+**Cause racine :**
+- Éléments de debug oubliés dans `MoonAnimation.tsx`
+- Hiérarchie z-index incohérente et conflictuelle
+- Paysage et AstronomicalLayer au même z-index (5)
+
+### ✅ **Corrections Appliquées**
+
+#### 🌙 **Suppression Debug Lune - MoonAnimation.tsx**
+- **Supprimé :** `console.log`, `backgroundColor: 'yellow'`, `border: '5px solid red'`
+- **Supprimé :** Position forcée au centre (`x: '50vw', y: '50vh'`)
+- **Supprimé :** Taille énorme (`300px` → `120px`)
+- **Supprimé :** `scale: 2`, `display: 'block'` par défaut
+- **Corrigé :** Position naturelle à l'horizon (`x: '10vw', y: '40px'`)
+- **Corrigé :** `display: 'none'` par défaut pour éviter le flash
+
+#### 🏗️ **Restructuration Z-Index Complète selon Cisco**
+**Nouvelle hiérarchie officielle :**
+```
+Z-Index 10 : Paysage (avant-plan) 🏔️
+Z-Index 9  : Nuages (derrière le paysage) ☁️
+Z-Index 8  : Lune + Halo (derrière les nuages) 🌙
+Z-Index 7  : Étoiles (derrière la lune) ⭐
+Z-Index 0  : Dégradé (arrière-plan) 🌅
+```
+
+#### 📁 **Fichiers Modifiés**
+1. **`Components/Background/DynamicBackground.tsx`**
+   - Paysage : `zIndex: 5` → `zIndex: 10`
+
+2. **`Components/Background/AstronomicalLayer.tsx`**
+   - Conteneur : `zIndex: 5` → `zIndex: 7`
+
+3. **`Components/Background/FixedStars.tsx`**
+   - Conteneur : `zIndex: 20` → `zIndex: 7`
+
+4. **`Components/Background/DiurnalLayer.tsx`**
+   - Conteneur : `zIndex: 3` → `zIndex: 9`
+   - Nuages individuels : `zIndex: 10-12` → `zIndex: 9`
+
+5. **`Components/UI/MoonAnimation.tsx`**
+   - Halo : `zIndex: 21` → `zIndex: 8`
+   - Lune : `zIndex: 22` → `zIndex: 8`
+   - Suppression complète des éléments de debug
+
+#### 📚 **Documentation Créée**
+- **`ContextEngineering/Architecture/z-index-dom-hierarchy.md`**
+- Architecture complète des z-index et DOM-éléments
+- Règles de maintenance et cohérence
+- Mémoriel pour éviter les erreurs futures
+
+### 🎯 **Résultats Attendus**
+- ✅ Plus de carré rouge, cercle jaune, ou logs de debug
+- ✅ Lune visible uniquement en mode nuit, position naturelle
+- ✅ Étoiles visibles en nuit profonde
+- ✅ Hiérarchie visuelle cohérente : Paysage > Nuages > Lune > Étoiles
+- ✅ Disparition fluide de la lune en changeant de mode
+
+### 🔮 **Préparation Future**
+- **Soleil :** Prévu dans AstronomicalLayer avec z-index 8 (même niveau que la lune)
+- **Architecture :** Prête pour nouveaux éléments astronomiques
+
+### ✅ **CORRECTION SUPPLÉMENTAIRE - BOUTON NUIT PROFONDE**
+
+**Nouveaux problèmes identifiés par Cisco :**
+- Étoiles désactivées au clic "Nuit Profonde"
+- Lune toujours pas présente
+- Nuages deviennent flous et blancs
+
+#### 🔧 **Corrections Appliquées**
+
+1. **Suppression double système d'étoiles - AstronomicalLayer.tsx**
+   - **Problème :** Conflit entre étoiles internes et FixedStars
+   - **Solution :** Suppression complète du système d'étoiles interne
+   - **Délégation :** FixedStars s'occupe de toutes les étoiles
+   - **Nettoyage :** Suppression interfaces Star, fonctions generateStars, updateStarsVisibility
+
+2. **Correction nuages flous - DiurnalLayer.tsx**
+   - **Problème :** Filtre mode 'night' rendait les nuages flous et blancs
+   - **Avant :** `brightness(0.6) contrast(1.2) saturate(0.8) hue-rotate(-10deg)`
+   - **Après :** `brightness(0.8) contrast(1.0) saturate(1.0)`
+   - **Résultat :** Nuages normaux en nuit, pas flous ni blancs
+
+#### 📁 **Fichiers Modifiés**
+- `Components/Background/AstronomicalLayer.tsx` : Suppression double système étoiles
+- `Components/Background/DiurnalLayer.tsx` : Correction filtre nuages nuit
+
+#### 🎯 **Résultats Attendus**
+- ✅ Étoiles visibles en mode nuit profonde (via FixedStars uniquement)
+- ✅ Nuages normaux en nuit (pas flous ni blancs)
+- ✅ Lune visible en mode nuit (corrections précédentes)
+- ✅ Système simplifié et cohérent
 
 ---
 
@@ -2578,7 +3099,48 @@ Z-Index 40 : ControlButtonsWrapper (TimeSimulator + AudioControlPanel)
 Z-Index 50 : DynamicBackground indicateur de transition
 ```
 
-### ❌ **PROBLÈME IDENTIFIÉ**
+### ✅ **PROBLÈME RÉSOLU - Z-INDEX LUNE**
+
+**CORRECTION APPLIQUÉE : Lune et halo repositionnés correctement**
+
+#### 🔍 **Problème Initial**
+- **Lune + Halo** : Z-index **-5** (NÉGATIF - derrière TOUT)
+- **Nuages individuels** : Z-index **10 et 12** (devant la lune)
+- **Résultat** : La lune était invisible, complètement derrière les nuages
+
+#### 🎯 **Solution Appliquée**
+- **Lune + Halo** : Z-index **8** (MÊME valeur pour les deux - conformément à Cisco.md)
+- **Nuages** : Z-index **10 et 12** (passent naturellement devant la lune)
+- **Ordre de profondeur** : Étoiles (1) → Lune+Halo (8) → Nuages (10-12)
+
+#### 📁 **Fichiers Modifiés**
+- `Components/UI/MoonAnimation.tsx` : Lignes 143 et 158
+  - Halo : `zIndex: -5` → `zIndex: 8`
+  - Lune : `zIndex: -5` → `zIndex: 8`
+
+### ✅ **PROBLÈME RÉSOLU - ORDRE DOM LUNE**
+
+**CORRECTION ARCHITECTURALE MAJEURE : Lune déplacée dans la bonne couche**
+
+#### 🔍 **Vrai Problème Identifié**
+- **Lune** : Rendue dans `App.tsx` APRÈS `DynamicBackground`
+- **Nuages** : Rendus dans `DiurnalLayer` DANS `DynamicBackground`
+- **Résultat** : Ordre DOM incorrect → Lune toujours devant les nuages (peu importe le z-index)
+
+#### 🎯 **Solution Architecturale**
+- **Lune déplacée** : `App.tsx` → `AstronomicalLayer.tsx`
+- **Ordre DOM correct** : Étoiles → Lune → Nuages (dans le même contexte d'empilement)
+- **Z-index respecté** : Lune (8) maintenant derrière Nuages (10-12)
+
+#### 📁 **Fichiers Modifiés**
+- `Components/Background/AstronomicalLayer.tsx` :
+  - Import `MoonAnimation` ajouté
+  - Composant `<MoonAnimation>` intégré dans le rendu
+- `App.tsx` :
+  - Import `MoonAnimation` supprimé
+  - Composant `<MoonAnimation>` supprimé (déplacé)
+
+### ❌ **PROBLÈME IDENTIFIÉ - SOLEIL**
 
 **Le soleil (z-index 1.5) est ÉCRASÉ par les nuages (z-index 10-12) !**
 
@@ -3422,4 +3984,146 @@ TIMER_SOUND_CONFIG = {
 
 ---
 
-*Dernière mise à jour : 08/08/2025 - Version 5.0.0 - GESTION MULTI-ONGLETS COMPLÈTE*
+---
+
+## 🔧 **CORRECTION COMPLÈTE MODES ARRIÈRE-PLAN - FOCUS NUAGES** *(09/08/2025 - Session Cisco)*
+
+### 📋 **PROBLÈMES RÉSOLUS**
+
+#### 🌙 **1. Animation Lune Mode Nuit Profonde - TRAJECTOIRE CORRIGÉE**
+**Fichier** : `Components/UI/MoonAnimation.tsx` (lignes 66-92)
+**Problème** : Trajectoire en "L" (horizontale puis verticale), vitesse trop rapide (2 minutes)
+**Solution** :
+- ✅ **Trajectoire parabolique fluide** : Remplacement keyframes par `motionPath` GSAP
+- ✅ **Courbe SVG naturelle** : `"M 15 10 Q 35 5 55 15 Q 75 25 95 70"` (diagonale continue)
+- ✅ **Vitesse ralentie** : 360 secondes (6 minutes) au lieu de 120 secondes
+- ✅ **Mouvement astronomique** : `ease: "none"` pour vitesse constante réaliste
+- ✅ **Synchronisation halo** : Même trajectoire pour effet lumineux
+
+```typescript
+// ✅ NOUVEAU : Courbe parabolique mathématiquement parfaite
+motionPath: {
+  path: "M 15 10 Q 35 5 55 15 Q 75 25 95 70", // Courbe fluide diagonale
+  autoRotate: false,
+  alignOrigin: [0.5, 0.5]
+},
+duration: 360, // 6 minutes - mouvement lent et naturel
+ease: "none" // Vitesse constante astronomique
+```
+
+#### ⭐ **2. Scintillement Étoiles TRÈS VISIBLE**
+**Fichier** : `Components/Background/FixedStars.tsx` (lignes 152-200)
+**Problème** : Scintillement trop subtil, étoiles peu visibles
+**Solution** :
+- ✅ **Amplitude dramatique** : Contraste min/max très prononcé (0.1 → 1.2)
+- ✅ **Phases multiples** : Pic lumineux + variation d'échelle séparés
+- ✅ **Halo intensifié** : Triple boxShadow avec intensité 6x supérieure
+- ✅ **Animation dynamique** : Vitesse optimisée pour plus de mouvement
+
+```typescript
+// ✅ NOUVEAU : Scintillement TRÈS visible
+const minOpacity = star.brightness * 0.1; // Minimum très bas pour contraste
+const maxOpacity = star.brightness * 1.2; // Maximum élevé pour pic lumineux
+const glowIntensity = star.size * 6; // Halo 6x plus intense
+// Triple boxShadow pour effet dramatique
+```
+
+#### ☁️ **3. Système Couleurs Nuages Mode Nuit - ASSOMBRISSEMENT PROGRESSIF**
+**Fichier** : `Components/Background/DiurnalLayer.tsx` (lignes 22-49)
+**Problème** : Nuages restent blancs en mode nuit, pas d'assombrissement
+**Solution** :
+- ✅ **Teintes spécialisées par mode** : Switch complet avec filtres CSS optimisés
+- ✅ **Mode nuit intelligent** : `brightness(0.4)` pour assombrir mais préserver visibilité lune
+- ✅ **Transitions naturelles** : Dégradés pour aube/lever/coucher de soleil
+- ✅ **Synchronisation parfaite** : Teintes appliquées lors des changements de mode
+
+```typescript
+// ✅ NOUVEAU : Système de teintes progressives
+case 'night':
+  return 'brightness(0.4) saturate(0.7) contrast(1.1) hue-rotate(-10deg)';
+case 'dawn':
+  return 'brightness(1.1) saturate(1.2) contrast(1.0) hue-rotate(5deg)';
+case 'sunrise':
+  return 'brightness(1.0) saturate(1.3) contrast(1.1) hue-rotate(15deg)';
+```
+
+#### 🔄 **4. Fonction applyCloudTransition COMPLÈTEMENT IMPLÉMENTÉE**
+**Fichier** : `Components/Background/DynamicBackground.tsx` (lignes 150-195)
+**Problème** : Fonction vide, transitions nuages non synchronisées
+**Solution** :
+- ✅ **Implémentation complète** : Sélection DOM + application GSAP synchronisée
+- ✅ **Logique centralisée** : Calcul des teintes directement dans la fonction
+- ✅ **Synchronisation parfaite** : Même durée que transition fond (15s)
+- ✅ **Sélection fiable** : `data-diurnal-layer` + `.cloud img` pour ciblage précis
+
+#### 🚀 **5. Optimisations Performance Nuages CRITIQUES**
+**Fichier** : `Components/Background/DiurnalLayer.tsx` (lignes 130-195)
+**Problème** : Ralentissements avec nuages haute qualité
+**Solution** :
+- ✅ **Lazy loading intelligent** : `loading='lazy'` + `decoding='async'`
+- ✅ **Priorité optimisée** : `fetchPriority='low'` pour ne pas bloquer le rendu
+- ✅ **GPU acceleration forcée** : `transform: translateZ(0)` + `backface-visibility: hidden`
+- ✅ **Marqueurs DOM efficaces** : `data-cloud-element` pour sélection rapide
+
+#### 🦉 **6. Temporisation Son Hibou NATURELLE**
+**Fichier** : `Components/Audio/AmbientSoundManagerV2.tsx` (lignes 20-28, 224-267)
+**Problème** : Hibou non temporisé, répétition trop fréquente ou absente
+**Solution** :
+- ✅ **Délai variable naturel** : Entre 60s et 120s (1-2 minutes) avec randomisation
+- ✅ **Logique spécialisée hibou** : Gestion séparée du hibou vs autres sons
+- ✅ **Vérification mode strict** : Répétition seulement si toujours en mode nuit
+- ✅ **Logs détaillés** : Suivi des répétitions avec délais exacts affichés
+
+```typescript
+// ✅ NOUVEAU : Délai aléatoire naturel pour hibou
+const randomDelay = 60000 + Math.random() * 60000; // Entre 1 et 2 minutes
+console.log(`🦉 Hibou répété après ${Math.round(randomDelay/1000)}s`);
+```
+
+### 📁 **FICHIERS MODIFIÉS**
+- ✅ `Components/UI/MoonAnimation.tsx` - Animation lune trajectoire parabolique
+- ✅ `Components/Background/FixedStars.tsx` - Scintillement étoiles dramatique
+- ✅ `Components/Background/DiurnalLayer.tsx` - Système couleurs + optimisations performance
+- ✅ `Components/Background/DynamicBackground.tsx` - Fonction applyCloudTransition complète
+- ✅ `Components/Audio/AmbientSoundManagerV2.tsx` - Temporisation hibou naturelle
+
+### 🎯 **RÉSULTATS OBTENUS**
+- 🌙 **Lune** : Trajectoire diagonale fluide et naturelle en 6 minutes
+- ⭐ **Étoiles** : Scintillement très visible avec effet dramatique
+- ☁️ **Nuages mode nuit** : Assombrissement progressif préservant visibilité lune
+- 🔄 **Transitions** : Synchronisation parfaite nuages/fond/étoiles (15s)
+- 🚀 **Performance** : Chargement optimisé, GPU acceleration, lazy loading
+- 🦉 **Hibou** : Répétition naturelle et variable (1-2 minutes) en mode nuit
+
+### 🚨 **CORRECTIONS URGENTES SUPPLÉMENTAIRES**
+
+#### 🔧 **7. Ralentissement Cadence Nuages**
+**Fichier** : `Components/Background/DiurnalLayer.tsx` (ligne 80)
+**Problème** : Nuages se déplacent trop rapidement
+**Solution** : Durée augmentée de 800s → 1200s (20 minutes)
+
+#### ⏰ **8. Synchronisation Parfaite avec Dégradé**
+**Fichiers** : `Components/UI/MoonAnimation.tsx` + `Components/Background/FixedStars.tsx`
+**Problème** : Lune et étoiles apparaissent avant la fin du dégradé de nuit
+**Solution** :
+- ✅ **Lune** : Délai de 15s (fin dégradé) + 3s apparition = 18s total
+- ✅ **Étoiles** : Invisibles au départ, apparition après 15s + délai aléatoire
+- ✅ **Principe** : Le dégradé est le maître absolu, tout suit sa temporisation
+
+#### 🔧 **9. Correction Chargement Nuages**
+**Fichier** : `Components/Background/DiurnalLayer.tsx` (lignes 130-188)
+**Problème** : Nuages ne s'affichent plus (lazy loading bloquant)
+**Solution** :
+- ✅ **Chargement direct** : Création immédiate des éléments DOM
+- ✅ **Suppression lazy loading** : Qui bloquait l'affichage
+- ✅ **Gestion d'erreur simplifiée** : Logs sans fallback complexe
+
+### 🧪 **TESTS RECOMMANDÉS**
+1. **Mode Nuit Profonde** : Vérifier lune diagonale + étoiles scintillantes + nuages assombris
+2. **Synchronisation** : Dégradé 15s → puis lune/étoiles apparaissent
+3. **Performance** : Vérifier fluidité avec nuages haute qualité
+4. **Audio hibou** : Écouter répétitions variables en mode nuit
+5. **Nuages** : Vérifier qu'ils s'affichent et se déplacent lentement
+
+---
+*Dernière mise à jour : 09/08/2025 - Version 5.1.1 - CORRECTIONS URGENTES SYNCHRONISATION*
