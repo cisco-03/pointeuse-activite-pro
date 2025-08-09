@@ -89,8 +89,8 @@ const DiurnalLayer: React.FC<DiurnalLayerProps> = ({ skyMode }) => {
         cloudSize = 2.0 + Math.random() * 1.5; // 2.0x à 3.5x
       }
 
-      // 🔧 CISCO: Vitesse ENCORE PLUS RALENTIE pour mouvement naturel et contemplatif
-      const duration = 1200; // Vitesse TRÈS RALENTIE de 1200 secondes (20 minutes) pour tous les nuages
+      // 🔧 CISCO: Vitesse UNIFORMISÉE et RALENTIE pour mouvement naturel et contemplatif
+      const duration = 1500; // 🔧 CISCO: Vitesse RALENTIE de 1500 secondes (25 minutes) - IDENTIQUE pour tous les nuages
 
       // 🔧 PHYSIQUE: Dérive verticale ultra variée
       const verticalDrift = (Math.random() - 0.5) * 30; // ±15% de dérive verticale

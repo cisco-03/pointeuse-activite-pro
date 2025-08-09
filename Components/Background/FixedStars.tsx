@@ -144,7 +144,7 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
       background: ${getStarColor(star.type, star.brightness)};
       border-radius: 50%;
       pointer-events: none;
-      z-index: 15;
+      z-index: 7;
       box-shadow: 0 0 ${star.size * 1.5}px ${getStarColor(star.type, star.brightness * 0.6)};
       transition: opacity 0.3s ease;
     `;
@@ -391,6 +391,8 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
   // 🔧 CISCO: CORRECTION URGENTE - Visibilité simple et directe
   useEffect(() => {
     console.log(`🌌 FixedStars: Transition vers mode ${skyMode}`);
+    console.log(`🔍 DIAGNOSTIC: Container existe? ${!!containerRef.current}`);
+    console.log(`🔍 DIAGNOSTIC: Étoiles créées? ${starsRef.current.length}`);
 
     if (skyMode === 'night') {
       // Mode nuit : TOUTES les étoiles visibles avec leur luminosité naturelle
@@ -398,16 +400,22 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
 
       if (containerRef.current) {
         const starElements = containerRef.current.querySelectorAll('.fixed-star');
-        console.log(`⭐ ${starElements.length} étoiles trouvées, rendu visible`);
+        console.log(`⭐ ${starElements.length} étoiles trouvées dans le DOM, rendu visible`);
+        console.log(`🔍 DIAGNOSTIC: Étoiles en mémoire: ${starsRef.current.length}`);
 
         starElements.forEach((element: Element, index: number) => {
           const htmlElement = element as HTMLElement;
           const star = starsRef.current[index];
           if (star) {
             // Rendre visible avec la luminosité naturelle de l'étoile
+            console.log(`⭐ Étoile ${index} rendue visible avec opacité ${star.brightness}`);
             gsap.set(htmlElement, { opacity: star.brightness });
+          } else {
+            console.warn(`⚠️ Étoile ${index} manquante en mémoire`);
           }
         });
+      } else {
+        console.error(`❌ PROBLÈME: Container non disponible pour affichage étoiles`);
       }
     } else {
       // Autres modes : masquer toutes les étoiles
@@ -426,7 +434,7 @@ const FixedStars: React.FC<FixedStarsProps> = ({ skyMode, density = 'high' }) =>
     <div
       ref={containerRef}
       className="fixed absolute inset-0 overflow-hidden pointer-events-none"
-      style={{ zIndex: 10 }} // 🔧 CISCO: Étoiles VISIBLES au-dessus du paysage (z-index 10)
+      style={{ zIndex: 7 }} // 🔧 CISCO: Étoiles derrière lune (z-index 7) - VERROUILLÉ
     />
   );
 };

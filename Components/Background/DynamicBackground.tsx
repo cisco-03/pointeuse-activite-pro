@@ -28,9 +28,9 @@ type BackgroundMode =
 // Couleurs simplifiées pour chaque mode
 const BACKGROUND_MODES = {
   night: {
-    primary: '#2d3748',   // 🔧 CISCO: Bleu-gris foncé pour le bas (légèrement éclairci)
-    secondary: '#1a202c', // 🔧 CISCO: Bleu très sombre pour le milieu
-    tertiary: '#0f1419'   // 🔧 CISCO: Presque noir pour le haut (entre bleu et noir)
+    primary: '#2c3e50',   // 🔧 CISCO: Bleu moyen pour le bas (horizon nocturne visible)
+    secondary: '#1a252f', // 🔧 CISCO: Bleu très sombre intermédiaire
+    tertiary: '#0d1117'   // 🔧 CISCO: Presque noir pour le haut (nuit profonde)
   },
   dawn: {
     primary: '#FFF5E6',   // Blanc crème très doux pour l'horizon
@@ -108,8 +108,8 @@ const TRANSITION_MODES = {
   },
   'dusk-night': {
     primary: '#4a5568',   // Gris-bleu doux vers sombre
-    secondary: '#2d3748', // Bleu-gris intermédiaire plus doux
-    tertiary: '#1a202c'   // Vers bleu très sombre
+    secondary: '#2a3544', // Bleu-gris intermédiaire vers nouveau système
+    tertiary: '#151d2a'   // Pont vers le bleu-noir dramatique
   }
 };
 

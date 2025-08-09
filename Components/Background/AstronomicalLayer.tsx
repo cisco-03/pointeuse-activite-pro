@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import FixedStars from './FixedStars';
+import NewStars from './NewStars'; // 🔧 CISCO: Nouveau composant étoiles simplifié
 import MoonAnimation from '../UI/MoonAnimation';
 
 // Interface pour les props du composant
@@ -28,11 +28,11 @@ const AstronomicalLayer: React.FC<AstronomicalLayerProps> = ({ skyMode = 'night'
       ref={containerRef}
       className="fixed inset-0 pointer-events-none"
       style={{
-        zIndex: 7 // 🔧 CISCO: Étoiles derrière la lune (z-index 7)
+        zIndex: 8 // 🔧 CISCO: Couche astronomique (étoiles z-7 + lune z-8) - VERROUILLÉ
       }}
     >
-      {/* Étoiles fixes avec haute densité */}
-      <FixedStars skyMode={skyMode} density="high" />
+      {/* 🌟 CISCO: Nouvelles étoiles simplifiées avec haute densité */}
+      <NewStars skyMode={skyMode} density="high" />
 
       {/* 🌙 CISCO: Lune intégrée dans la couche astronomique pour ordre DOM correct */}
       <MoonAnimation

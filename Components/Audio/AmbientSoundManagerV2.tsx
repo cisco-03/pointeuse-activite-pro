@@ -22,7 +22,7 @@ const SOUND_CONFIG: Record<string, {
       sounds: ['hibou-molkom.mp3', 'night-atmosphere-with-crickets-374652.mp3', 'sounds-crickets-nuit_profonde.mp3'],
       volume: 0.6,
       folder: 'nuit-profonde',
-      fadeInDuration: 5000,
+      fadeInDuration: 12000, // 🔧 CISCO: Fondu d'entrée plus long (12s) pour accompagner la transition visuelle
       fadeOutDuration: 5000,
       repeatDelay: 90000 // 🔧 CISCO: Temporisation 1.5 minute (90s) pour hibou-molkom.mp3
     },
