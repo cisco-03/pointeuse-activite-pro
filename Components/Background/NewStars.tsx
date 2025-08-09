@@ -19,76 +19,119 @@ const NewStars: React.FC<NewStarsProps> = ({ skyMode, density = 'high' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<SimpleStar[]>([]);
 
-  // 🌟 CISCO: Configuration simple et efficace
-  const getStarCount = (density: string, skyMode: string): number => {
-    if (skyMode !== 'night') return 0; // Étoiles seulement en mode nuit
-    
+  // 🌟 CISCO: Configuration améliorée - Moins de grosses, plus de micro-étoiles
+  const getStarConfig = (density: string, skyMode: string) => {
+    if (skyMode !== 'night') return { big: 0, micro: 0 };
+
     switch (density) {
-      case 'low': return 50;
-      case 'medium': return 100;
-      case 'high': return 200; // Nombre raisonnable et visible
-      default: return 100;
+      case 'low':
+        return { big: 8, micro: 60 }; // 8 grosses + 60 micro = 68 total
+      case 'medium':
+        return { big: 15, micro: 120 }; // 15 grosses + 120 micro = 135 total
+      case 'high':
+        return { big: 20, micro: 200 }; // 20 grosses + 200 micro = 220 total
+      default:
+        return { big: 15, micro: 120 };
     }
   };
 
-  // 🌟 CISCO: Génération d'étoile simple et visible
-  const createStar = (id: number): SimpleStar => {
-    // Tailles visibles garanties
-    const sizeOptions = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0]; // Tailles fixes visibles
+  // 🌟 CISCO: Génération d'étoiles différenciées (grosses vs micro)
+  const createBigStar = (id: number): SimpleStar => {
+    // Grosses étoiles : plus visibles, scintillement lent
+    const sizeOptions = [3.0, 3.5, 4.0, 4.5]; // Grosses tailles
     const size = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
-    
-    // Opacités visibles garanties
-    const opacityOptions = [0.6, 0.7, 0.8, 0.9, 1.0]; // Opacités fixes visibles
+
+    const opacityOptions = [0.7, 0.8, 0.9, 1.0]; // Bien visibles
     const opacity = opacityOptions[Math.floor(Math.random() * opacityOptions.length)];
-    
-    // Couleurs variées mais visibles
+
     const colors = [
       'rgba(255, 255, 255, 1)', // Blanc pur
       'rgba(255, 255, 240, 1)', // Blanc chaud
-      'rgba(240, 248, 255, 1)', // Blanc froid
       'rgba(255, 250, 205, 1)', // Blanc doré
-      'rgba(230, 230, 250, 1)'  // Blanc lavande
     ];
     const color = colors[Math.floor(Math.random() * colors.length)];
 
     return {
       id,
-      x: Math.random() * 100, // Position X sur toute la largeur
-      y: Math.random() * 60,  // Position Y sur 60% du haut (éviter le paysage)
+      x: Math.random() * 100,
+      y: Math.random() * 60,
       size,
       opacity,
       color
     };
   };
 
-  // 🌟 CISCO: Rendu simple et direct dans le DOM
+  const createMicroStar = (id: number): SimpleStar => {
+    // Micro-étoiles : plus petites, scintillement rapide
+    const sizeOptions = [0.8, 1.0, 1.2, 1.5]; // Micro tailles
+    const size = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+
+    const opacityOptions = [0.3, 0.4, 0.5, 0.6]; // Plus subtiles
+    const opacity = opacityOptions[Math.floor(Math.random() * opacityOptions.length)];
+
+    const colors = [
+      'rgba(255, 255, 255, 0.8)', // Blanc subtil
+      'rgba(240, 248, 255, 0.8)', // Blanc froid
+      'rgba(230, 230, 250, 0.8)'  // Blanc lavande
+    ];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    return {
+      id,
+      x: Math.random() * 100,
+      y: Math.random() * 70, // Micro-étoiles peuvent aller plus bas
+      size,
+      opacity,
+      color
+    };
+  };
+
+  // 🌟 CISCO: Rendu amélioré avec différenciation grosses/micro étoiles
   const renderStars = () => {
     if (!containerRef.current) return;
 
     // Nettoyer les anciennes étoiles
     containerRef.current.innerHTML = '';
 
-    const starCount = getStarCount(density, skyMode);
-    console.log(`🌟 Création de ${starCount} nouvelles étoiles pour mode ${skyMode}`);
+    const starConfig = getStarConfig(density, skyMode);
+    const totalStars = starConfig.big + starConfig.micro;
+    console.log(`🌟 Création de ${totalStars} étoiles (${starConfig.big} grosses + ${starConfig.micro} micro) pour mode ${skyMode}`);
 
-    if (starCount === 0) {
+    if (totalStars === 0) {
       starsRef.current = [];
       return;
     }
 
-    // Créer les étoiles
+    // Créer les étoiles différenciées
     const stars: SimpleStar[] = [];
-    for (let i = 0; i < starCount; i++) {
-      stars.push(createStar(i));
+    let id = 0;
+
+    // Créer les grosses étoiles
+    for (let i = 0; i < starConfig.big; i++) {
+      stars.push(createBigStar(id++));
     }
+
+    // Créer les micro-étoiles
+    for (let i = 0; i < starConfig.micro; i++) {
+      stars.push(createMicroStar(id++));
+    }
+
     starsRef.current = stars;
 
-    // Rendre chaque étoile dans le DOM
-    stars.forEach(star => {
+    // Rendre chaque étoile dans le DOM avec scintillement différencié
+    stars.forEach((star, index) => {
       const element = document.createElement('div');
-      element.className = 'new-star';
+      const isBigStar = index < starConfig.big;
+      element.className = isBigStar ? 'new-star big-star' : 'new-star micro-star';
       element.id = `new-star-${star.id}`;
-      
+
+      // Scintillement différencié selon le type
+      const twinkleDuration = isBigStar
+        ? 3 + Math.random() * 4  // Grosses étoiles : 3-7s (lent)
+        : 1 + Math.random() * 2; // Micro-étoiles : 1-3s (rapide)
+
+      const twinkleDelay = Math.random() * 2; // Délai aléatoire pour désynchroniser
+
       element.style.cssText = `
         position: absolute;
         left: ${star.x}%;
@@ -100,8 +143,9 @@ const NewStars: React.FC<NewStarsProps> = ({ skyMode, density = 'high' }) => {
         pointer-events: none;
         z-index: 9999;
         opacity: ${star.opacity};
-        box-shadow: 0 0 ${star.size * 2}px ${star.color};
-        animation: twinkle-simple ${2 + Math.random() * 3}s ease-in-out infinite alternate;
+        box-shadow: 0 0 ${star.size * (isBigStar ? 3 : 1.5)}px ${star.color};
+        animation: ${isBigStar ? 'twinkle-big' : 'twinkle-micro'} ${twinkleDuration}s ease-in-out infinite alternate;
+        animation-delay: ${twinkleDelay}s;
       `;
 
       containerRef.current!.appendChild(element);

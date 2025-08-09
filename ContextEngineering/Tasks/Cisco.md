@@ -40,7 +40,6 @@ ContextEngineering\Tasks\Cisco.md
 
 
 
-
 **Tâches à venir après rectification et correction pour les nuages. Cette tâche viendra bien après.** 
 Ensuite maintenant que nous avons tout nettoyé l'ancien code il va falloir remettre en place le soleil  
 

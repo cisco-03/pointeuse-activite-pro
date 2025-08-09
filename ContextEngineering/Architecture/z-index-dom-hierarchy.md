@@ -13,12 +13,17 @@ Ce document explique l'architecture complète des z-index et la hiérarchie des 
 
 ### **Hiérarchie officielle :**
 ```
-Z-Index 10 : Paysage (avant-plan) 🏔️
-Z-Index 9  : Nuages (derrière le paysage) ☁️
-Z-Index 8  : Lune + Halo (derrière les nuages) 🌙
-Z-Index 7  : Étoiles (derrière la lune) ⭐
-Z-Index 0  : Dégradé (arrière-plan) 🌅
+Z-Index 9999 : ⭐ ÉTOILES (NewStars.tsx) - SOLUTION TROUVÉE ! ⭐
+Z-Index 10   : Paysage (avant-plan) 🏔️
+Z-Index 9    : Nuages (derrière le paysage) ☁️
+Z-Index 8    : Lune + Halo (derrière les nuages) 🌙
+Z-Index 0    : Dégradé (arrière-plan) 🌅
 ```
+
+### **🌟 SOLUTION ÉTOILES DÉCOUVERTE :**
+- **Problème** : FixedStars.tsx avec z-index 7 → INVISIBLE
+- **Solution** : NewStars.tsx avec z-index 9999 → VISIBLE ✅
+- **Clé du succès** : Z-index très élevé + tailles garanties (1.5-4px)
 
 ## 🏗️ **Architecture DOM Complète**
 
